@@ -79,7 +79,6 @@ with the channel-1-era signal set. See [Pinout](../reference/pinout.md).
 
 ## Changing the channel-2 buffer
 
-See [the open proposal](../reference/troubleshooting.md#raising-the-channel-2-fifo).
 Keep `BUF_DEPTH` and `FIFO_NAME` in `add_ch2_fifo.tcl` in step with each other
 and with the instantiation in `USBInterface.v` — an IP whose name understates
 its size is exactly the kind of trap this project has already paid for.

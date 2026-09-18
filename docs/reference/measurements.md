@@ -59,9 +59,7 @@ it because DDR3 gives it seconds of slack.
 
 !!! note "Current best explanation, not a closed case"
     The tail-latency reading fits every measurement above, but has not been
-    directly observed. The proposed remedy is
-    [doubling the channel-2 FIFO](troubleshooting.md#raising-the-channel-2-fifo);
-    re-measure after building rather than assuming.
+    directly observed.
 
 ## Rate tolerance
 

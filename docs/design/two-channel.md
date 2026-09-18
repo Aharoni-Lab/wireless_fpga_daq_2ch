@@ -30,9 +30,7 @@ So channel 2's buffer is a single block-RAM FIFO, `fifo2_out`, 32768 × 32 bit =
 **Consequence:** channel 2 is far more sensitive to the host being slow to read.
 Under simultaneous two-channel capture this shows up as occasional lost buffers
 on channel 2 and never on channel 1. See
-[Measurements](../reference/measurements.md#two-channel-capture) and the
-[open proposal](../reference/troubleshooting.md#raising-the-channel-2-fifo) to
-double it.
+[Measurements](../reference/measurements.md#two-channel-capture).
 
 !!! note "Moving channel 2 onto DDR3 would not have helped"
     `fifo_ddr3_in` is *also* written on a recovered clock, so that route hands

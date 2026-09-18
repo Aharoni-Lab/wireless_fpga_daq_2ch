@@ -64,35 +64,6 @@ See [Vivado setup](../build/vivado-setup.md). This repo ships the file at
 
 ## Open items
 
-### Raising the channel-2 FIFO
-
-**Status: proposed, not built.**
-
-Channel 2's `fifo2_out` is 32768 × 32 bit = 128 KB ≈ 125 ms at 8.33 Mbit/s.
-Doubling it to 65536 (256 KB ≈ 250 ms) should cut the tail-latency overruns that
-cause the loss rate above.
-
-In `hdl/build/add_ch2_fifo.tcl`:
-
-```tcl
-set FIFO_NAME "fifo_w32_65536_r32_65536"
-set BUF_DEPTH 65536
-```
-
-Then:
-
-1. `delete_ip [get_ips fifo_w32_32768_r32_32768]`
-2. update the `fifo2_out` instantiation in `USBInterface.v` to the new name
-3. re-source `add_ch2_fifo.tcl`
-4. rebuild, and check *Report Utilization* — block RAM goes from ~30 to ~60 of
-   the A75T's 105 tiles — and timing
-5. **re-measure** the two-channel loss rate rather than assuming it is fixed
-
-!!! warning "Keep the name and the depth in step"
-    An IP core whose name understates its size is the kind of provenance trap
-    that has already cost this project a bench session. Change both, and the
-    instantiation.
-
 ### Simultaneous live display
 
 Both channels can be captured at once but not *displayed* live at once.
