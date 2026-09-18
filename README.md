@@ -18,8 +18,12 @@ Both channels share one delay line, so they always run at the same data rate.
 
 ## Quick start
 
-Flash `hdl/build/USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` — the only rate
-confirmed on hardware — and record a channel with miniscope-io:
+Recording is done with [miniscope-io (`mio`)](https://github.com/miniscope/mio), which flashes the bitfile and
+reads the stream.
+
+Copy `hdl/build/USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` — the only rate
+confirmed on hardware — into `mio/devices/XEM7310-A75/` in your miniscope-io
+checkout, then:
 
 ```bash
 mio stream capture -c wireless-200px-ch2-alt -b -o my_recording

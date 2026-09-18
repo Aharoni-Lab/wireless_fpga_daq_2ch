@@ -56,7 +56,7 @@ uncommitted changes — treat that build as unreproducible.
 
 ## Naming
 
-miniscope-io parses the filename, so the scheme is not decorative:
+[miniscope-io](https://github.com/miniscope/mio) parses the filename, so the scheme is not decorative:
 
 ```
 USBInterface-<rate>-<input pins>-<IO voltage>-<Manchester convention>.bit

@@ -1,5 +1,15 @@
 # Host side (miniscope-io)
 
+Capture is handled by **[miniscope-io](https://github.com/miniscope/mio)** — `mio` on the command line. It
+uploads the bitfile, resets the board, reads a pipe, and writes video, metadata
+and raw binary.
+
+!!! note "The bitfile lives in miniscope-io, not here"
+    `mio` loads bitfiles from `mio/devices/XEM7310-A75/` in its own checkout.
+    Copy the file you want from `hdl/build/` into that directory, keeping the
+    name unchanged — miniscope-io parses it, and its test suite checks the
+    format.
+
 Both channels arrive over **one USB cable**. The FPGA exposes them as two
 separate block-pipe endpoints, so the host opens the board once and chooses
 which endpoint to read.

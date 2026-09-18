@@ -30,7 +30,7 @@ same data rate**. That rate is set at build time — see
 
 - Never touched this before → [Signal chain](design/overview.md)
 - Just need a bitfile → [The bitfiles](build/bitfiles.md)
-- Want to record data → [Host side](host/capture.md)
+- Want to record data → [Host side](host/capture.md), using [miniscope-io](https://github.com/miniscope/mio)
 - Something is broken → [Troubleshooting](reference/troubleshooting.md)
 - Changing the rate or the RTL → [Building a bitfile](build/building.md)
 
