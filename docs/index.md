@@ -1,0 +1,52 @@
+# Two-channel wireless FPGA DAQ
+
+Two independent Manchester-encoded data streams received simultaneously on one
+Opal Kelly XEM7310-A75, for the wireless miniscope project. Each channel carries
+one miniscope; both arrive over a single USB cable.
+
+!!! success "Status — confirmed on hardware 2026-09-18"
+    Two miniscopes streamed simultaneously for 30 s at 8.33 Mbit/s each,
+    zero dropped buffers on either channel. See
+    [Measurements](reference/measurements.md).
+
+## What this is
+
+The original DAQ decoded **one** Manchester stream. This design adds a second,
+fully independent receiver on a pin that used to be a debug output, so one
+XEM7310 serves two transmitters.
+
+| | Channel 1 | Channel 2 |
+|---|---|---|
+| Input pin | J2-2 (FPGA `Y6`) | J2-4 (FPGA `AA6`) |
+| Decoder | `mandec dec` | `mandec dec2` |
+| Buffering | FIFO chain → **DDR3** → FIFO | FIFO chain → **block RAM** FIFO |
+| USB endpoint | `okBTPipeOut` **0xA0** | `okBTPipeOut` **0xA1** |
+
+Both channels share one `c_shift_ram_0` delay line, so **they always run at the
+same data rate**. That rate is set at build time — see
+[Building a bitfile](build/building.md).
+
+## Where to start
+
+- Never touched this before → [Signal chain](design/overview.md)
+- Just need a bitfile → [The bitfiles](build/bitfiles.md)
+- Want to record data → [Host side](host/capture.md)
+- Something is broken → [Troubleshooting](reference/troubleshooting.md)
+- Changing the rate or the RTL → [Building a bitfile](build/building.md)
+
+## Repository layout
+
+```
+hdl/source/design/    RTL: USBInterface.v (top), mandec/, ddr3/, okHDL/, xem7310.xdc
+hdl/source/sim/       Testbench generator and Opal Kelly / DDR3 simulation models
+hdl/source/board/     XEM7310-A75 board files, incl. mig.prj for the DDR3 controller
+hdl/build/            Vivado project, IP .xci sources, build scripts, built bitfiles
+hdl/build/ch1_debug/  Same builds with channel-1 debug signals on the spare pins
+docs/                 This site
+```
+
+!!! warning "Source and bitfiles are kept in step"
+    Every committed bitfile has a `.txt` beside it recording the git commit,
+    shift depth, and timing slack it was built from. A bitfile whose source
+    cannot be reconstructed has caused a lost bench session on this project
+    before — see [Troubleshooting](reference/troubleshooting.md#provenance).

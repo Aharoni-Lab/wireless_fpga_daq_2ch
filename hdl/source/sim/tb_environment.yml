@@ -1,0 +1,9 @@
+channels:
+  - conda-forge
+dependencies:
+  - jinja2
+  - jupyter
+  - pandas
+  - bitstring
+  - numpy
+  - editdistance

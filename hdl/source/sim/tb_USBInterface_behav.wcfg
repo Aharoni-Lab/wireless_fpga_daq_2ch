@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/bendog/Documents/git/wireless_fpga_daq/hdl/source/sim/runs/test-1705446757/waveform.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="tb_USBInterface" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="243,526.994300 ns"></ZoomStartTime>
+      <ZoomEndTime time="243,900.416555 ns"></ZoomEndTime>
+      <Cursor1Time time="243,802.194300 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="435"></NameColumnWidth>
+      <ValueColumnWidth column_width="667"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="12" />
+   <wvobject type="logic" fp_name="/tb_USBInterface/input_stream">
+      <obj_property name="ElementShortName">input_stream</obj_property>
+      <obj_property name="ObjectShortName">input_stream</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_USBInterface/dut/manchester">
+      <obj_property name="ElementShortName">manchester</obj_property>
+      <obj_property name="ObjectShortName">manchester</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_USBInterface/dut/dec_clk">
+      <obj_property name="ElementShortName">dec_clk</obj_property>
+      <obj_property name="ObjectShortName">dec_clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_USBInterface/dut/dec_data_bit">
+      <obj_property name="ElementShortName">dec_data_bit</obj_property>
+      <obj_property name="ObjectShortName">dec_data_bit</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/dut/fifo_chain0_dout">
+      <obj_property name="ElementShortName">fifo_chain0_dout[3:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_chain0_dout[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/dut/fifo_chain1_dout">
+      <obj_property name="ElementShortName">fifo_chain1_dout[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_chain1_dout[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/dut/fifo_ddr3_in_dout">
+      <obj_property name="ElementShortName">fifo_ddr3_in_dout[255:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_ddr3_in_dout[255:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/dut/fifo_ddr3_out_din">
+      <obj_property name="ElementShortName">fifo_ddr3_out_din[255:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_ddr3_out_din[255:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/dut/fifo_ddr3_out_dout">
+      <obj_property name="ElementShortName">fifo_ddr3_out_dout[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_ddr3_out_dout[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/dut/epA0/ep_datain">
+      <obj_property name="ElementShortName">ep_datain[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ep_datain[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_USBInterface/dut/epA0/ep_ready">
+      <obj_property name="ElementShortName">ep_ready</obj_property>
+      <obj_property name="ObjectShortName">ep_ready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_USBInterface/pipeOut">
+      <obj_property name="ElementShortName">pipeOut[0:127][7:0]</obj_property>
+      <obj_property name="ObjectShortName">pipeOut[0:127][7:0]</obj_property>
+   </wvobject>
+</wave_config>

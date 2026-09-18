@@ -1,0 +1,10 @@
+bitfile:      USBInterface-10mhz-J2_2+J2_4-3v3-IEEE.bit
+built:        2026-09-17 13:24:27
+vivado:       2023.2
+git commit:   081c9e919d7e0411e1549065bbee491b678bd321
+git dirty:    yes
+shift depth:  10  (=> 10.00 MHz on both channels)
+WNS:          0.208229 ns
+WHS:          0.031575 ns
+clock:        dec_clk period 100.000 ns
+clock:        dec2_clk period 100.000 ns

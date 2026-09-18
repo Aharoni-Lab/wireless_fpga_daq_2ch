@@ -1,0 +1,19 @@
+set_param board.repoPaths <<=BOARD_PATH=>>
+open_project <<=PRJ=>>
+update_compile_order -fileset sources_1
+current_fileset -simset [ get_filesets sim_1 ]
+delete_fileset -quiet sim_autogen
+create_fileset -simset sim_autogen
+add_files -fileset sim_autogen -norecurse -scan_for_includes {<<=VLIB=>>}
+current_fileset -simset [ get_filesets sim_autogen ]
+set_property top tb_USBInterface [get_filesets sim_autogen]
+set_property top_lib xil_defaultlib [get_filesets sim_autogen]
+set_property SOURCE_SET sources_1 [get_filesets sim_autogen]
+set_property -name {xsim.simulate.wdb} -value {<<=WDB_PATH=>>} -objects [get_filesets sim_autogen]
+# Vivado's launch_simulation cannot spawn its own compile.bat here (it fails
+# with "Spawn failed: Broken pipe" regardless of console or PATH), so only
+# generate the scripts and let tb_generator.py run them. The sim_autogen
+# fileset and its scripts have to survive until that happens; the next run's
+# "delete_fileset -quiet" above clears them.
+launch_simulation -scripts_only
+current_fileset -simset [ get_filesets sim_1 ]

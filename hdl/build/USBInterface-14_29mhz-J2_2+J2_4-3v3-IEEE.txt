@@ -1,0 +1,10 @@
+bitfile:      USBInterface-14_29mhz-J2_2+J2_4-3v3-IEEE.bit
+built:        2026-09-17 13:31:29
+vivado:       2023.2
+git commit:   081c9e919d7e0411e1549065bbee491b678bd321
+git dirty:    yes
+shift depth:  7  (=> 14.29 MHz on both channels)
+WNS:          0.208229 ns
+WHS:          0.035016 ns
+clock:        dec_clk period 70.000 ns
+clock:        dec2_clk period 70.000 ns

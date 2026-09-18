@@ -1,0 +1,49 @@
+site_name: Wireless FPGA DAQ — two channel
+site_description: >-
+  Two independent Manchester receivers on one Opal Kelly XEM7310, for the
+  wireless miniscope project.
+repo_url: https://github.com/MarcelMB/wireless_fpga_daq_2ch
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
+  - toc: {permalink: true}
+
+nav:
+  - Home: index.md
+  - Design:
+      - Signal chain: design/overview.md
+      - Manchester decoder: design/decoder.md
+      - What channel 2 does differently: design/two-channel.md
+      - The FIFO reset sequencer: design/reset-sequencer.md
+  - Building:
+      - Vivado setup: build/vivado-setup.md
+      - Building a bitfile: build/building.md
+      - The bitfiles: build/bitfiles.md
+  - Simulation:
+      - Running the testbench: simulation/testbench.md
+  - Capturing data:
+      - Host side (miniscope-io): host/capture.md
+  - Reference:
+      - Pinout: reference/pinout.md
+      - Measurements: reference/measurements.md
+      - Troubleshooting: reference/troubleshooting.md
+      - How channel 2 was fixed: reference/history.md
