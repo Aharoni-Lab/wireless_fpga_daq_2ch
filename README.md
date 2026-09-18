@@ -3,7 +3,7 @@
 Two independent Manchester receivers on one Opal Kelly XEM7310-A75, for the
 wireless miniscope project. Two miniscopes, one FPGA, one USB cable.
 
-**📖 Full documentation: <https://marcelmb.github.io/wireless_fpga_daq_2ch/>**
+**📖 Full documentation: <https://marcelbrosch.com/wireless_fpga_daq_2ch/>**
 
 Confirmed on hardware 2026-09-18: two miniscopes streaming simultaneously for
 30 s at 8.33 Mbit/s each, zero dropped buffers on either channel.
