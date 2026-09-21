@@ -9,6 +9,10 @@ current_fileset -simset [ get_filesets sim_autogen ]
 set_property top tb_USBInterface [get_filesets sim_autogen]
 set_property top_lib xil_defaultlib [get_filesets sim_autogen]
 set_property SOURCE_SET sources_1 [get_filesets sim_autogen]
+# Simulation-only. Swaps the MIG instance in USBInterface.v for a
+# behavioural model of its user interface; nothing else in the design
+# changes. Set on this fileset only, so synthesis never sees it.
+set_property verilog_define {<<=DEFINES=>>} [get_filesets sim_autogen]
 set_property -name {xsim.simulate.wdb} -value {<<=WDB_PATH=>>} -objects [get_filesets sim_autogen]
 # Vivado's launch_simulation cannot spawn its own compile.bat here (it fails
 # with "Spawn failed: Broken pipe" regardless of console or PATH), so only

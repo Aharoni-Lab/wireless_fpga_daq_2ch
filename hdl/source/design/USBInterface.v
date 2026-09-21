@@ -533,7 +533,24 @@ module USBInterface (
       .app_wdf_end      (app_wdf_end),
       .app_wdf_mask     (app_wdf_mask)
   );
-  xem7310_a75_mig u_xem7310_a75_mig (
+  // The memory controller, or a behavioural stand-in for it.
+  //
+  // SIM_MIG_MODEL is set only on the simulation fileset, by run_tb.tcl. It
+  // swaps the module name and nothing else -- the port map below is shared, so
+  // the two cannot drift apart. Everything else in this file, including the
+  // arbiter, all four DDR3 FIFOs and both pipes, is the same in simulation as
+  // in the bitfile.
+  //
+  // This exists because MIG calibration does not converge against the Micron
+  // model here, which otherwise makes everything behind the controller
+  // unsimulatable. See hdl/source/sim/ddr3/mig_ui_model.sv for what the model
+  // is and is not faithful about.
+`ifdef SIM_MIG_MODEL
+  `define MIG_MODULE mig_ui_model
+`else
+  `define MIG_MODULE xem7310_a75_mig
+`endif
+  `MIG_MODULE u_xem7310_a75_mig (
       // Memory interface ports
       .ddr3_addr          (ddr3_addr),            // output [14:0] ddr3_addr
       .ddr3_ba            (ddr3_ba),              // output [2:0] ddr3_ba
@@ -575,6 +592,7 @@ module USBInterface (
       .sys_clk_i          (sysClk),
       .sys_rst            (ddr3_reset)            // input sys_rst
   );
+`undef MIG_MODULE
 
   // ok interfaces
   // ok pipe reverse byte order

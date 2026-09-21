@@ -26,33 +26,66 @@ export VIVADO_PATH=/your/path/to/vivado
 ## Run it
 
 ```bash
-CH2_ONLY=1 python tb_generator.py
+python tb_generator.py
 ```
 
 Output:
 
 ```
+Cannot find preamble
+channel 1 (pipe 0xa0): error rate 0.0, data length 400
+Cannot find preamble
 channel 2 (pipe 0xa1): error rate 0.0, data length 400
-run folder: .../runs/test-1758...
+run folder: .../runs/test-1790...
 ```
 
 `tb_generator.py` renders the testbench from `tb_USBInterface.v.j2`, generates
-the Manchester stimulus, runs xsim, then decodes what came back out of the pipe
-and scores it.
+the Manchester stimulus, runs xsim, then decodes what came back out of both
+pipes and scores each.
 
-!!! tip "`CH2_ONLY=1` is the useful mode"
-    It skips waiting for DDR3 calibration and the pipe `0xA0` read. **MIG
-    calibration does not converge in this simulation** — the DDR3 model reports
-    tWLS violations on DQS and `ddr3_init_complete` never asserts — so neither
-    channel's DDR3 path can be exercised here.
+!!! note "`Cannot find preamble` there is correct output"
+    It comes from the *inverted* copy of the stream, which `check_channel`
+    scores as well to catch a Manchester convention mismatch. When the stream
+    decodes correctly, the inverted one contains no preamble — so this line
+    appearing exactly once per channel, next to an error rate of 0.0, is the
+    healthy case. Its absence would be the thing to look at.
 
-!!! warning "This testbench no longer covers channel 2's buffer"
-    It did, while channel 2's buffer was block RAM. Now that channel 2 caches
-    into DDR3 like channel 1, everything from `fifo2_ddr3_in` onward sits
-    behind the MIG that will not calibrate. What this testbench still covers
-    on channel 2 is the decoder, the FIFO chain and the reset sequencer —
-    which is what it was built to find bugs in. The buffer itself is covered
-    by [the arbiter testbench](#the-arbiter-testbench) instead.
+## The memory controller is a model
+
+Both channels now cache into DDR3, and **MIG calibration does not converge in
+this simulation** — the Micron model reports tWLS violations on DQS and
+`init_calib_complete` never asserts within any simulated time anyone has been
+willing to wait. Left alone, that would make everything behind the controller
+invisible here, which after channel 2 moved onto DDR3 meant *both* channels.
+
+So the default run swaps the controller, not the design:
+`hdl/source/sim/ddr3/mig_ui_model.sv` replaces `xem7310_a75_mig` behind a
+`SIM_MIG_MODEL` define that is set on the simulation fileset only. The arbiter,
+all four DDR3 FIFOs, the reset sequencer and both Opal Kelly pipes are the ones
+that go into the bitfile.
+
+!!! success "Channel 1 is simulatable for the first time"
+    Before this, `CH2_ONLY=1` was the only usable mode and pipe `0xA0` had
+    never returned data in simulation. Both pipes now do.
+
+| variable | effect |
+|---|---|
+| *(default)* | both channels, MIG replaced by the behavioural model |
+| `CH2_ONLY=1` | skips the calibration wait and the pipe `0xA0` read — roughly halves the runtime when only channel 2 matters |
+| `REAL_MIG=1` | the actual MIG and the Micron DDR3 model. **Does not work**; kept so the calibration problem can be reproduced |
+
+!!! warning "What the model does not prove"
+    It is a model of the MIG's *user interface*, not of DDR3. No refresh, no
+    bank or row timing, no bandwidth limit, no read/write reordering. It says
+    the logic driving `app_*` is correct. It says nothing about whether the
+    controller is configured correctly or meets DDR3 timing — those stay
+    hardware questions, which is why the acceptance criteria in
+    [Measurements](../reference/measurements.md#two-channel-capture) are bench
+    measurements.
+
+    What it *is* deliberately awkward about: `app_rdy` and `app_wdf_rdy` are
+    withheld pseudo-randomly, so a design that only works against an
+    always-ready controller fails here.
 
 ## How the channels are distinguished
 
@@ -95,12 +128,12 @@ When chasing a channel-2 problem, look at `dec2_clk`, `dec2_fifo_reset` and
 `hdl/source/sim/tb_ddr3_ui.v` is a separate, much smaller testbench for
 `ddr3_ui`, the block that shares the one MIG between both channels.
 
-It exists because of the calibration problem above. The full testbench has
-never been able to reach DDR3, so when channel 2 moved behind the MIG the new
-arbitration logic would otherwise have had **no** simulation coverage at all.
-This replaces the MIG with a behavioural model of its user interface — not a
-DDR3 model, just the `app_*` handshake, with pseudo-random `app_rdy` and
-`app_wdf_rdy` stalls so the retry paths are exercised — and runs in seconds.
+The two are complementary, not redundant. The full testbench proves the whole
+path works; this one reaches the states the full testbench cannot. Its
+stimulus is 400 bits per channel — nowhere near enough to wrap a ring, fill
+one, or hold both channels backlogged long enough for starvation to show. This
+one shrinks the rings to **4 burst slots** so all of that happens in
+microseconds, and it runs in seconds rather than minutes.
 
 ```bash
 cd hdl/source/sim
@@ -151,6 +184,14 @@ What it checks:
     four bits. `shift_to_preamble` locked onto the inverted preamble and scored
     partial garbage. `check_channel` now tests the inverted stream too and names
     a convention mismatch explicitly.
+
+!!! warning "The DDR3 calibration wait was bound to a debug pin"
+    The testbench waited on `ddr3_init_complete`, which is just the net wired
+    to `dbg_sig2` — and `dbg_sig2` only carries `init_calib_complete` when
+    `DEBUG_MODE` is 0. The committed default is 1, where it carries `dec2_clk`.
+    So the wait was satisfied the moment channel 2's decoder ticked and never
+    actually waited for calibration. It is now a hierarchical reference to
+    `dut.init_calib_complete`, which cannot drift with the debug pin mapping.
 
 !!! warning "A passing simulation is not a passing bitfile"
     A behavioural model has ideal clocks. Every rate up to 50 MHz decodes

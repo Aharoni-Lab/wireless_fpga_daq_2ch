@@ -198,6 +198,11 @@ module tb_USBInterface ();
   );
 
   // see https://support.xilinx.com/s/question/0D52E00006hph1mSAA/ddr-3-simulation-mig?language=en_US
+  //
+  // Skipped under SIM_MIG_MODEL: the memory controller is a behavioural
+  // model then, so there is no DRAM interface for this to attach to and
+  // it would only report violations against a dead bus.
+`ifndef SIM_MIG_MODEL
   genvar i;
   generate
     for (i = 0; i < 2; i = i + 1) begin : gen_mem
@@ -221,6 +226,7 @@ module tb_USBInterface ();
       );
     end
   endgenerate
+`endif
 
   integer fd_input;
   integer fd_output;
@@ -261,7 +267,12 @@ module tb_USBInterface ();
     #2000 SetWireInValue(8'h00, 32'h00000000, NO_MASK);
     UpdateWireIns;
 {% if WAIT_FOR_DDR3 %}
-    wait (ddr3_init_complete);
+    // Hierarchical, deliberately. ddr3_init_complete is only the dbg_sig2
+    // pin, and dbg_sig2 carries init_calib_complete only when DEBUG_MODE is
+    // 0. The committed default is 1, where it carries dec2_clk -- so this
+    // wait used to be satisfied by channel 2's decoder ticking, and never
+    // actually waited for calibration at all.
+    wait (dut.init_calib_complete);
 {% else %}
     // DDR3 calibration skipped: channel 2 does not depend on it.
     #200000;  // let the wire-in resets settle

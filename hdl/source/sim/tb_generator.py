@@ -26,6 +26,7 @@ BOARD_PATH = "../board/"
 VLIB_FILES = [
     "./okSim/okWireOR.v",
     "./ddr3/ddr3_model.sv",
+    "./ddr3/mig_ui_model.sv",
     "./okSim/okHost.v",
     "./okSim/okWireIn.v",
     "./ddr3/wiredly.v",
@@ -48,10 +49,23 @@ VIVADO_PATH = os.environ.get(
 # failing case and only need to see that no data came out:
 #     TIMEOUT_NS=1500000 CH2_ONLY=1 CH2_RESET_PULSES=0 python tb_generator.py
 TIMEOUT_NS = int(os.environ.get("TIMEOUT_NS", 8_000_000))
-# CH2_ONLY=1 skips the wait for DDR3 calibration and the pipe 0xa0 read.
-# MIG calibration does not complete within a practical simulated time here (2 ms
-# was not enough), and it only gates channel 1. Channel 2 is decoder -> block-RAM
-# FIFO -> pipe with resets from the host wire-in, so it simulates in minutes.
+# REAL_MIG=1 instantiates the actual MIG and the Micron DDR3 model instead of
+# mig_ui_model. It does not currently work and is kept only so the calibration
+# problem can be reproduced: the model reports tWLS violations on DQS and
+# init_calib_complete never asserts, within any simulated time anyone has been
+# willing to wait. Everything behind the memory controller is invisible in that
+# mode -- which, once channel 2 moved onto DDR3, meant both channels.
+#
+# The default swaps the controller for a behavioural model of its user
+# interface. The arbiter, all four DDR3 FIFOs, the reset sequencer and both
+# pipes are the real ones; only the external memory controller is a model.
+# See hdl/source/sim/ddr3/mig_ui_model.sv.
+REAL_MIG = os.environ.get("REAL_MIG", "0") == "1"
+# CH2_ONLY=1 skips the wait for DDR3 calibration and the pipe 0xa0 read. With
+# the model in place calibration does complete, so this is no longer needed to
+# get a usable run -- it just halves the runtime when only channel 2 is of
+# interest. With REAL_MIG=1 it is the only mode that reaches any pipe at all,
+# and even then only as far as fifo2_ddr3_in.
 CH2_ONLY = os.environ.get("CH2_ONLY", "0") == "1"
 # CH2_RESET_PULSES=0 removes the channel-2 activity that the testbench drives
 # while fifo_reset is asserted. Hardware has no equivalent -- nothing guarantees
@@ -152,6 +166,7 @@ tb_temp.stream(
 ).dump(vfile)
 tcl_temp.stream(
     VLIB=" ".join(vlib + [vfile]),
+    DEFINES="" if REAL_MIG else "SIM_MIG_MODEL",
     PRJ=prj_file,
     CLEANUP_PATH=cleanup_path,
     BOARD_PATH=board_path,
