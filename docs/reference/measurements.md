@@ -8,6 +8,14 @@ Two miniscopes, both transmitting, 8.33 Mbit/s each, 30 s, one XEM7310, one USB
 cable. Captured 2026-09-18 with `capture_both_channels.py` reading both
 endpoints from a single device handle.
 
+!!! warning "Taken with the 128 KB channel-2 FIFO"
+    Every number in this section — and the ~159 ms hold time the explanation
+    below rests on — was measured with `fifo2_out` at 32768 × 32 bit. On
+    2026-09-21 it was doubled to 65536 × 32 bit (256 KB, ≈250 ms); see
+    [Two-channel design](../design/two-channel.md#no-ddr3). The 8.33 MHz
+    bitfile carries the larger buffer and **has not been re-measured yet**, so
+    treat everything here as the before-picture.
+
 | | ch1 (0xA0 / J2-2) | ch2 (0xA1 / J2-4) |
 |---|---|---|
 | buffers | 4845 | 4855 |
@@ -59,7 +67,9 @@ it because DDR3 gives it seconds of slack.
 
 !!! note "Current best explanation, not a closed case"
     The tail-latency reading fits every measurement above, but has not been
-    directly observed.
+    directly observed. Doubling the buffer to ≈250 ms is the test of it: if
+    the loss rate is unchanged at the same chunk sizes, the reading is wrong
+    and the extra block RAM buys nothing.
 
 ## Rate tolerance
 

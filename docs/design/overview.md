@@ -47,10 +47,10 @@ See [Manchester decoder](decoder.md) for how the recovery works.
 === "Channel 2"
 
     ```
-    ... ──▶ fifo2_out (32768 x 32 bit block RAM) ──▶ pipe 0xA1
+    ... ──▶ fifo2_out (65536 x 32 bit block RAM) ──▶ pipe 0xA1
     ```
 
-    No DDR3. The block-RAM FIFO *is* the whole buffer: 128 KB, about 125 ms at
+    No DDR3. The block-RAM FIFO *is* the whole buffer: 256 KB, about 250 ms at
     8.33 Mbit/s. And it is written on `dec2_clk`, a **recovered clock that stops
     when the transmitter does**.
 

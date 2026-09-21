@@ -8,6 +8,10 @@ hdl/build/wireless_daq.gen/
 hdl/build/*.jou
 hdl/build/*.log
 hdl/build/.Xil/
+# Written fresh by every build_bitfile.tcl run; committing either lets a
+# stale rate constraint or a stale report outlive the build it came from.
+hdl/build/recovered_clock_rate.xdc
+hdl/build/recovered_clocks.rpt
 
 # Generated inside the IP directories; only the .xci is the source of truth
 hdl/build/wireless_daq.srcs/sources_1/ip/*/*

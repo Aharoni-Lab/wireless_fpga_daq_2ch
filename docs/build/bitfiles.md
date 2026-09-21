@@ -10,17 +10,24 @@ Each `.bit` has a `.txt` beside it recording exactly how it was built.
 
 Debug pins carry `dec_clk`, `dec2_clk`, `pipe2_ready`.
 
-| Bitfile | Depth | Rate | WNS | Hardware-confirmed |
-|---|---|---|---|---|
-| `USBInterface-10mhz-J2_2+J2_4-3v3-IEEE.bit` | 10 | 10 MHz | 0.208229 ns | — |
-| `USBInterface-12_5mhz-J2_2+J2_4-3v3-IEEE.bit` | 8 | 12.5 MHz | 0.208229 ns | — |
-| `USBInterface-14_29mhz-J2_2+J2_4-3v3-IEEE.bit` | 7 | 14.29 MHz | 0.208229 ns | — |
-| `USBInterface-16_67mhz-J2_2+J2_4-3v3-IEEE.bit` | 6 | 16.67 MHz | 0.208229 ns | — |
-| `USBInterface-20mhz-J2_2+J2_4-3v3-IEEE.bit` | 5 | 20 MHz | 0.208229 ns | — |
-| `USBInterface-25mhz-J2_2+J2_4-3v3-IEEE.bit` | 4 | 25 MHz | 0.208229 ns | — |
-| `USBInterface-33_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 3 | 33.33 MHz | 0.208229 ns | — |
-| `USBInterface-50mhz-J2_2+J2_4-3v3-IEEE.bit` | 2 | 50 MHz | 0.208229 ns | — |
-| `USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 12 | 8.33 MHz | 0.208229 ns | **yes, both channels** |
+!!! warning "Mixed channel-2 buffer sizes"
+    `fifo2_out` was doubled from 128 KB to 256 KB on 2026-09-21. Only the
+    8.33 MHz file has been rebuilt with it; the other eight still carry the
+    128 KB buffer and are one commit behind the source tree. The **ch2 buf**
+    column below says which is which. Rebuild the rest with
+    `build_bitfile.tcl` if you need them to match.
+
+| Bitfile | Depth | Rate | ch2 buf | WNS | Hardware-confirmed |
+|---|---|---|---|---|---|
+| `USBInterface-10mhz-J2_2+J2_4-3v3-IEEE.bit` | 10 | 10 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-12_5mhz-J2_2+J2_4-3v3-IEEE.bit` | 8 | 12.5 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-14_29mhz-J2_2+J2_4-3v3-IEEE.bit` | 7 | 14.29 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-16_67mhz-J2_2+J2_4-3v3-IEEE.bit` | 6 | 16.67 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-20mhz-J2_2+J2_4-3v3-IEEE.bit` | 5 | 20 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-25mhz-J2_2+J2_4-3v3-IEEE.bit` | 4 | 25 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-33_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 3 | 33.33 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-50mhz-J2_2+J2_4-3v3-IEEE.bit` | 2 | 50 MHz | 128 KB | 0.208229 ns | — |
+| `USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 12 | 8.33 MHz | 256 KB | 0.208229 ns | **yes, both channels** |
 
 **8.33 MHz is the one to use** — it matches the transmitters in current service
 and is the only rate confirmed decoding on hardware.

@@ -70,11 +70,24 @@ puts $fh "# Replaces the fixed-period defaults in xem7310.xdc."
 puts $fh "create_clock -name dec_clk  -period [format %.3f $bit_period] \[get_pins dec/o_clk\]"
 puts $fh "create_clock -name dec2_clk -period [format %.3f $bit_period] \[get_pins dec2/o_clk\]"
 close $fh
-if {[llength [get_files -quiet [file tail $rate_xdc]]] == 0} {
+# Match on the full path, not the basename. wireless_daq.xpr has shipped with
+# this file pointing into a *sibling clone* of the repo, left over from whatever
+# Depth that clone last built. A basename match finds the foreign file, concludes
+# one is already added, and leaves the build timing against someone else's rate
+# -- silently, because the puts below reports the value we meant to write rather
+# than the one in the fileset. Drop every copy that is not ours, then add ours.
+foreach f [get_files -quiet -of_objects [get_filesets constrs_1] "*recovered_clock_rate.xdc"] {
+    if {[file normalize $f] ne [file normalize $rate_xdc]} {
+        puts "WARNING: removing foreign rate constraint from the project: $f"
+        remove_files -fileset constrs_1 $f
+    }
+}
+if {[llength [get_files -quiet -of_objects [get_filesets constrs_1] [file normalize $rate_xdc]]] == 0} {
     add_files -fileset constrs_1 $rate_xdc
 }
-set_property PROCESSING_ORDER LATE [get_files [file tail $rate_xdc]]
-puts "rate constraint: dec_clk/dec2_clk at [format %.3f $bit_period] ns"
+set rate_file [get_files -of_objects [get_filesets constrs_1] [file normalize $rate_xdc]]
+set_property PROCESSING_ORDER LATE $rate_file
+puts "rate constraint: dec_clk/dec2_clk at [format %.3f $bit_period] ns, from $rate_file"
 
 set jobs 8
 reset_run synth_1
@@ -103,13 +116,34 @@ set rpt [file join $here recovered_clocks.rpt]
 report_clock_networks -file $rpt
 report_clock_utilization -append -file $rpt
 
+# Check the period the implemented design actually carries, rather than the one
+# we wrote out. Those came apart once already: the project had the rate
+# constraint pointing into a sibling clone, so a Depth 12 build was timed at
+# that clone's 20 ns while the log cheerfully announced 120 ns. Timing passed
+# and the stamp lied. Compare, and refuse.
 set found {}
+set clock_error {}
 foreach c {dec_clk dec2_clk} {
-    if {[llength [get_clocks -quiet $c]] == 1} {
-        lappend found "$c period [get_property PERIOD [get_clocks $c]] ns"
-    } else {
+    if {[llength [get_clocks -quiet $c]] != 1} {
         lappend found "$c NOT DEFINED -- decoder paths are unconstrained"
+        lappend clock_error "$c is not defined in the implemented design"
+        continue
     }
+    set got [get_property PERIOD [get_clocks $c]]
+    lappend found "$c period $got ns"
+    if {abs($got - $bit_period) > 0.001} {
+        lappend clock_error "$c timed at $got ns, expected [format %.3f $bit_period] ns"
+    }
+}
+if {[llength $clock_error] > 0} {
+    set msg "RECOVERED-CLOCK CONSTRAINT MISMATCH -- bitfile not copied out."
+    foreach e $clock_error { append msg "
+  $e" }
+    append msg "
+Check which recovered_clock_rate.xdc is in constrs_1: the project"
+    append msg "
+has shipped with that file pointing into a sibling clone of this repo."
+    error $msg
 }
 
 # Refuse before copying. Writing the bitfile out under its scheme name first and

@@ -24,13 +24,19 @@ identical readiness semantics to the host, so the same host code drives either.
 Channel 1 caches into the board's DDR3 through the MIG controller. Channel 2
 does not — there is one memory controller and it is spoken for.
 
-So channel 2's buffer is a single block-RAM FIFO, `fifo2_out`, 32768 × 32 bit =
-**128 KB ≈ 125 ms** at 8.33 Mbit/s. Channel 1 effectively has seconds.
+So channel 2's buffer is a single block-RAM FIFO, `fifo2_out`, 65536 × 32 bit =
+**256 KB ≈ 250 ms** at 8.33 Mbit/s. Channel 1 effectively has seconds.
 
 **Consequence:** channel 2 is far more sensitive to the host being slow to read.
 Under simultaneous two-channel capture this shows up as occasional lost buffers
 on channel 2 and never on channel 1. See
 [Measurements](../reference/measurements.md#two-channel-capture).
+
+!!! warning "The depth was doubled on 2026-09-21 and not yet re-measured"
+    It was 32768 × 32 bit = 128 KB ≈ 125 ms, which is what every loss number
+    on the Measurements page was taken with. Doubling it is a hypothesis about
+    the tail of the host stall distribution, not a confirmed fix — only the
+    8.33 MHz bitfile carries it so far.
 
 !!! note "Moving channel 2 onto DDR3 would not have helped"
     `fifo_ddr3_in` is *also* written on a recovered clock, so that route hands

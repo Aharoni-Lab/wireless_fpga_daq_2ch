@@ -8,6 +8,10 @@ variant, so the only way to tell these apart is which folder they came from.
 Same design, same nine data rates, same FIFO reset fix as the committed set. The
 only difference is which three signals reach the debug pins.
 
+**These are all pre-2026-09-21 builds**, so every one of them carries the old
+128 KB `fifo2_out`. The source tree is now at 256 KB. Regenerate before using
+any of them to reason about channel-2 buffer loss.
+
 | pin | committed set (`../`) | this set |
 |---|---|---|
 | J3-10 (F4) | `dec_clk` — ch1 recovered clock | `dec_clk` — ch1 recovered clock |
