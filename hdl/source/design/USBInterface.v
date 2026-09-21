@@ -364,7 +364,7 @@ module USBInterface (
       .rd_rst_busy ()                     // output wire rd_rst_busy
   );
 
-  // FIFO, channel 2: 1 bit -> 4 bit -> 32 bit, then a 32k-word BRAM buffer to okClk
+  // FIFO, channel 2: 1 bit -> 4 bit -> 32 bit, then a 64k-word BRAM buffer to okClk
   assign fifo2_chain0_wr_en = ~fifo2_chain0_full;
   assign fifo2_chain1_wr_en = (~fifo2_chain0_empty) & (~fifo2_chain1_full);
   assign fifo2_out_wr_en    = (~fifo2_chain1_empty) & (~fifo2_out_full);
@@ -396,8 +396,8 @@ module USBInterface (
       .wr_rst_busy (),
       .rd_rst_busy ()
   );
-  // Created by hdl/build/add_ch2_fifo.tcl (fifo_generator 13.2, independent clocks, 32x32768)
-  fifo_w32_32768_r32_32768 fifo2_out (
+  // Created by hdl/build/add_ch2_fifo.tcl (fifo_generator 13.2, independent clocks, 32x65536)
+  fifo_w32_65536_r32_65536 fifo2_out (
       .rst        (dec2_fifo_reset),
       .wr_clk     (dec2_clk),
       .rd_clk     (okClk),

@@ -3,23 +3,23 @@
 # Usage, from the Vivado Tcl Console with wireless_daq.xpr open:
 #     source [get_property DIRECTORY [current_project]]/add_ch2_fifo.tcl
 #
-# Creates the IP core `fifo_w32_32768_r32_32768`, instantiated as `fifo2_out`
+# Creates the IP core `fifo_w32_65536_r32_65536`, instantiated as `fifo2_out`
 # in USBInterface.v. This is channel 2's buffer between the decimator chain
 # (dec2_clk) and the OpalKelly block pipe 0xA1 (okClk). Only needs to be run
 # once per clone; after that the .xci lives in the project.
 #
 # Channel 1 buffers into DDR3; channel 2 has no DDR3 backing, so this core is
-# the whole buffer: 32768 x 32 bit = 128 KB of block RAM (~30 of the A75T's
-# 105 BRAM tiles). To double it to 256 KB, set BUF_DEPTH to 65536 below and
-# re-run after deleting the existing IP -- see "Raising the depth" at the end.
+# the whole buffer: 65536 x 32 bit = 256 KB of block RAM (~60 of the A75T's
+# 105 BRAM tiles), about 250 ms at 8.33 Mbit/s. It was 32768 (128 KB, ~125 ms)
+# until 2026-09-21; see "Changing the depth" at the end for why and how.
 #
 # The parameters mirror `fifo_ddr3_out` (the channel-1 pipe-out FIFO) so both
 # channels present identical behaviour to the host: independent clocks, block
 # RAM, standard (non-FWFT) reads, async reset, and a prog_empty threshold of
 # 16 driving ep_ready.
 
-set FIFO_NAME "fifo_w32_32768_r32_32768"
-set BUF_DEPTH 32768
+set FIFO_NAME "fifo_w32_65536_r32_65536"
+set BUF_DEPTH 65536
 
 # prog_full backpressures the writer, mirroring channel 1's ~98% of depth.
 set FULL_ASSERT [expr {$BUF_DEPTH - 68}]
@@ -85,13 +85,23 @@ prog_full prog_empty wr_rst_busy rd_rst_busy"
 puts "prog_full asserts at $FULL_ASSERT / $BUF_DEPTH, prog_empty at $EMPTY_ASSERT."
 puts "Now run Generate Bitstream."
 
-# Raising the depth
-# -----------------
-# If channel 2 drops buffers under host stalls, double the buffer:
-#   1. delete_ip [get_ips fifo_w32_32768_r32_32768]
-#   2. rename this core: USBInterface.v line ~275 instantiates it by name, so
-#      either keep the name and just change BUF_DEPTH to 65536 above (the name
-#      then understates the depth), or rename both here and in USBInterface.v.
-#   3. re-source this script, then rebuild.
-# 65536 x 32 bit = 256 KB = ~60 of 105 BRAM tiles; still fits, but check
-# Report Utilization and timing afterwards.
+# Changing the depth
+# ------------------
+# The depth appears in three places and they must agree: FIFO_NAME and
+# BUF_DEPTH above, and the instantiation at USBInterface.v ~line 400. A core
+# whose name understates its size is the provenance trap that has already cost
+# this project a bench session, so rename rather than quietly widen.
+#
+# To change it:
+#   1. delete_ip [get_ips fifo_w32_65536_r32_65536]
+#   2. edit FIFO_NAME and BUF_DEPTH here, and the instantiation in USBInterface.v
+#   3. re-source this script, then rebuild
+#
+# Depth vs. block RAM on the A75T (105 tiles), and the host stall it rides out
+# at 8.33 Mbit/s:
+#
+#   32768 x 32 bit = 128 KB = ~30 tiles = ~125 ms   (before 2026-09-21)
+#   65536 x 32 bit = 256 KB = ~60 tiles = ~250 ms   (current)
+#
+# 65536 is close to the practical ceiling: DDR3 and the channel-1 chain want
+# the rest. Check Report Utilization and timing after any change.
