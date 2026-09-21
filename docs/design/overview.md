@@ -1,8 +1,14 @@
 # Signal chain
 
-Both channels do the same thing up to the point where they are buffered. The
-asymmetry after that is the single most important fact about this design, and
-it explains most of its behaviour.
+Both channels do the same thing, end to end. They used to diverge at the
+buffer — channel 1 into DDR3, channel 2 into block RAM — and that asymmetry
+explained most of this design's behaviour, including every lost buffer ever
+measured on channel 2. It is gone: both channels now cache into DDR3 through
+one arbitrated controller.
+
+What remains different is narrower and lives further up: channel 2's half of
+the chain is clocked by a recovered clock that stops when its transmitter
+does. See [What channel 2 does differently](two-channel.md).
 
 ## Inputs
 
@@ -32,31 +38,40 @@ manchester ──▶ mandec ──▶ 1→4 bit FIFO ──▶ 4→32 bit FIFO �
 The FIFO chain widens that single bit to the 32-bit words the USB pipe moves.
 See [Manchester decoder](decoder.md) for how the recovery works.
 
-## Where they diverge
+## The buffer
 
-=== "Channel 1"
+Both channels take the same route into and out of DDR3:
 
-    ```
-    ... ──▶ fifo_ddr3_in ──▶ DDR3 (via MIG) ──▶ fifo_ddr3_out ──▶ pipe 0xA0
-    ```
+```
+... ──▶ fifo*_ddr3_in ──▶ [ ddr3_ui ] ──▶ DDR3 (via MIG) ──▶ fifo*_ddr3_out ──▶ pipe
+              │                │                                    │
+        recovered clock     ui_clk                               ui_clk
+```
 
-    The DDR3 cache absorbs host stalls of many seconds. Critically, the FIFO
-    that gates the host read (`fifo_ddr3_out`) is written on `ui_clk`, the DDR3
-    user-interface clock, which **free-runs**.
+`ddr3_ui` owns the single MIG user interface and time-shares it between the
+two. Each channel gets a ring of its own — 256 MiB, roughly four minutes at
+8.33 Mbit/s — in a disjoint half of the address space, and the controller
+serves four jobs round-robin: read and write, per channel. There is no fixed
+priority, so neither channel can starve the other no matter how backlogged it
+gets.
 
-=== "Channel 2"
+That capacity is the point. A host stall has to last minutes, not
+milliseconds, before anything is lost.
 
-    ```
-    ... ──▶ fifo2_out (65536 x 32 bit block RAM) ──▶ pipe 0xA1
-    ```
+!!! note "One controller, so the rings are not the whole device"
+    `RING_ADDR_BITS = 26` in `ddr3_ui.v` sets 256 MiB per channel. The rings
+    deliberately stop short of the 1 GiB the board carries: a ring only has to
+    outlast a host stall, and leaving headroom means the address mapping does
+    not have to be exactly what the MIG documentation implies.
 
-    No DDR3. The block-RAM FIFO *is* the whole buffer: 256 KB, about 250 ms at
-    8.33 Mbit/s. And it is written on `dec2_clk`, a **recovered clock that stops
-    when the transmitter does**.
+### What is still asymmetric
 
-That second difference — a pipe-out FIFO whose write clock can stop — is what
-made channel 2 fail for years. See
-[The FIFO reset sequencer](reset-sequencer.md).
+The input FIFO of each channel is written on that channel's recovered clock,
+which stalls whenever its decoder is not seeing valid symbols. That is true of
+both `fifo_ddr3_in` and `fifo2_ddr3_in`, and it is why both need their resets
+sequenced — see [The FIFO reset sequencer](reset-sequencer.md). Channel 1 only
+escapes the problem in practice because its transmitter is usually already
+streaming when the host resets.
 
 ## Host interface
 
@@ -77,9 +92,13 @@ The FIFO chain that widens one decoded bit into 32-bit words:
 
 ![fifo chain schematic](../imgs/schematics/fifo_chain.png)
 
-Channel 1 only — the DDR3 cache and its MIG user-interface logic:
+The DDR3 cache and its MIG user-interface logic:
 
 ![ddr3 schematic](../imgs/schematics/ddr.png)
+
+!!! warning "This schematic predates the two-channel arbiter"
+    It shows one input FIFO, one output FIFO and one ring. There are now two
+    of each. The MIG side is unchanged.
 
 The Opal Kelly host side, shared by both channels:
 

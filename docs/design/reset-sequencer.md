@@ -9,14 +9,20 @@ hardware.
 Every FIFO ahead of DDR3 is clocked by a recovered clock, and
 [`mandec` stalls that clock when it sees no valid Manchester symbols](decoder.md#clock-recovery).
 
-`fifo2_out` is a `fifo_generator` core with an **asynchronous reset and the
+`fifo2_ddr3_in` is a `fifo_generator` core with an **asynchronous reset and the
 safety circuit enabled**. Such a core needs *both* of its clocks running to
 complete a reset. So:
 
-> Pulse `fifo_reset` while channel 2 is idle, and `fifo2_out` never starts
-> accepting writes. `prog_empty` stays asserted, `ep_ready` never rises,
+> Pulse `fifo_reset` while channel 2 is idle, and `fifo2_ddr3_in` never starts
+> accepting writes. Nothing ever reaches DDR3, so `fifo2_ddr3_out` stays empty,
+> `prog_empty` stays asserted, `ep_ready` never rises,
 > `ReadFromBlockPipeOut(0xA1, ...)` blocks forever — **and it does not recover
 > when data arrives later.**
+
+!!! note "This used to be `fifo2_out`"
+    Before channel 2 moved onto DDR3 the vulnerable core was `fifo2_out`, the
+    block-RAM buffer that fed pipe `0xA1` directly. The failure is identical,
+    one stage earlier in the chain.
 
 On the host that looks like:
 
@@ -56,8 +62,8 @@ should assume the recovered clock is periodic — a half-locked decoder's is not
 | FIFO | Reset | Why |
 |---|---|---|
 | `fifo_chain0/1`, `fifo_ddr3_in` | `dec_fifo_reset` | written on `dec_clk` |
-| `fifo2_chain0/1`, `fifo2_out` | `dec2_fifo_reset` | written on `dec2_clk` |
-| `fifo_ddr3_out` | plain `fifo_reset` | both its clocks free-run; gating it would make it depend on a transmitter it does not need |
+| `fifo2_chain0/1`, `fifo2_ddr3_in` | `dec2_fifo_reset` | written on `dec2_clk` |
+| `fifo_ddr3_out`, `fifo2_ddr3_out` | plain `fifo_reset` | both their clocks free-run; gating them would make them depend on a transmitter they do not need |
 
 The two sequencers are **fully independent**. Channel 1 does not wait on a
 channel-2 transmitter, so running one channel alone is fine.
@@ -81,9 +87,20 @@ cleanly with 0 dropped buffers.
     on J2-26 sits low and pipe `0xA1` returns nothing. That is correct, not a
     fault.
 
-## Remaining weakness
+## The weakness that used to be here
 
-The sequencer makes reset order irrelevant, but `fifo2_out`'s write clock is
-still a recovered clock. The durable fix is to cross out of `dec2_clk` earlier
-so the pipe-out FIFO's write side free-runs like channel 1's. Not done; not
-currently needed.
+This section used to read:
+
+> The sequencer makes reset order irrelevant, but `fifo2_out`'s write clock is
+> still a recovered clock. The durable fix is to cross out of `dec2_clk`
+> earlier so the pipe-out FIFO's write side free-runs like channel 1's.
+
+Moving channel 2 onto DDR3 did exactly that, as a side effect of doing it for
+capacity: `fifo2_ddr3_out` is written on `ui_clk`, so **no pipe-out FIFO in
+the design is written on a recovered clock any more**. Both pipes now present
+the host with a readiness signal that cannot be frozen by a transmitter going
+quiet.
+
+The sequencer is still required. It just protects one FIFO per channel now
+(`fifo_ddr3_in` and `fifo2_ddr3_in`) rather than a FIFO the host reads
+directly.

@@ -79,6 +79,17 @@ with the channel-1-era signal set. See [Pinout](../reference/pinout.md).
 
 ## Changing the channel-2 buffer
 
-Keep `BUF_DEPTH` and `FIFO_NAME` in `add_ch2_fifo.tcl` in step with each other
-and with the instantiation in `USBInterface.v` — an IP whose name understates
-its size is exactly the kind of trap this project has already paid for.
+There is no channel-2 IP to generate any more. Both of its FIFOs are second
+instances of cores channel 1 already uses, and the buffer itself is a DDR3
+ring sized by `RING_ADDR_BITS` in `hdl/source/design/ddr3/ddr3_ui.v` — 26,
+meaning 256 MiB per channel. Changing it is a one-line edit with no IP
+regeneration.
+
+Both rings must fit in the device together: the channel bit sits immediately
+above `RING_ADDR_BITS`, so the two of them occupy `2^(RING_ADDR_BITS+1)`
+words of `app_addr`. 26 puts that at 512 MiB on a 1 GiB board.
+
+!!! tip "Check it in simulation first"
+    `tb_ddr3_ui` overrides `RING_ADDR_BITS` to 5 so ring wrap and the
+    full/empty conditions happen in microseconds. See
+    [the arbiter testbench](../simulation/testbench.md#the-arbiter-testbench).

@@ -43,9 +43,16 @@ and scores it.
 !!! tip "`CH2_ONLY=1` is the useful mode"
     It skips waiting for DDR3 calibration and the pipe `0xA0` read. **MIG
     calibration does not converge in this simulation** — the DDR3 model reports
-    tWLS violations on DQS and `ddr3_init_complete` never asserts — so channel 1
-    cannot currently be exercised here. Channel 2 is decoder → block RAM → pipe,
-    and simulates in minutes.
+    tWLS violations on DQS and `ddr3_init_complete` never asserts — so neither
+    channel's DDR3 path can be exercised here.
+
+!!! warning "This testbench no longer covers channel 2's buffer"
+    It did, while channel 2's buffer was block RAM. Now that channel 2 caches
+    into DDR3 like channel 1, everything from `fifo2_ddr3_in` onward sits
+    behind the MIG that will not calibrate. What this testbench still covers
+    on channel 2 is the decoder, the FIFO chain and the reset sequencer —
+    which is what it was built to find bugs in. The buffer itself is covered
+    by [the arbiter testbench](#the-arbiter-testbench) instead.
 
 ## How the channels are distinguished
 
@@ -81,7 +88,58 @@ vivado -mode batch -source runs/test-<timestamp>/show_waveform.tcl
 ```
 
 When chasing a channel-2 problem, look at `dec2_clk`, `dec2_fifo_reset` and
-`fifo2_out`'s `prog_empty`.
+`fifo2_ddr3_out`'s `prog_empty`.
+
+## The arbiter testbench
+
+`hdl/source/sim/tb_ddr3_ui.v` is a separate, much smaller testbench for
+`ddr3_ui`, the block that shares the one MIG between both channels.
+
+It exists because of the calibration problem above. The full testbench has
+never been able to reach DDR3, so when channel 2 moved behind the MIG the new
+arbitration logic would otherwise have had **no** simulation coverage at all.
+This replaces the MIG with a behavioural model of its user interface — not a
+DDR3 model, just the `app_*` handshake, with pseudo-random `app_rdy` and
+`app_wdf_rdy` stalls so the retry paths are exercised — and runs in seconds.
+
+```bash
+cd hdl/source/sim
+xvlog ../design/ddr3/ddr3_ui.v tb_ddr3_ui.v
+xelab work.tb_ddr3_ui -s tb_ddr3_ui_sim
+xsim tb_ddr3_ui_sim -runall
+```
+
+```
+ch1 delivered 200/200 words
+ch2 delivered 200/200 words
+at first completion: ch1 200, ch2 199
+ring slots per channel: 4
+PASS
+```
+
+What it checks:
+
+| | |
+|---|---|
+| Round trip | every word each channel writes comes back, in order |
+| Isolation | each word carries a channel tag; arriving on the wrong sink fails |
+| Addressing | every burst must address its own channel's ring, asserted per command |
+| Ring wrap | `RING_ADDR_BITS` is overridden to 5 — **4 burst slots per ring** — so both rings wrap tens of times and sit at full for most of the run |
+| Fairness | neither channel may take more than twice the other's bursts |
+
+!!! tip "Fairness has to be sampled mid-run"
+    The obvious check — compare the final delivered counts — is worthless
+    here, and passed a deliberately broken fixed-priority arbiter. Both
+    channels always finish: once the greedy one's source drains, the starved
+    one gets the whole controller and catches up. The testbench snapshots both
+    counts at the moment the *first* channel completes instead. Under fixed
+    priority that reads **200 to 0**.
+
+!!! note "Both failure modes were confirmed to fail it"
+    Before trusting the pass, the arbiter was broken two ways on purpose —
+    collapsing both rings onto one address range, and replacing round-robin
+    with fixed priority — and the testbench caught each. A test that has never
+    been seen to fail is not evidence.
 
 ## Two traps that have already cost time
 

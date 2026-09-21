@@ -1,10 +1,10 @@
 bitfile:      USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit
-built:        2026-09-21 10:04:10
+built:        2026-09-21 10:20:10
 vivado:       2023.2
-git commit:   d17ea63b475b620fb9d76f67077ba4cb59f1b86c
+git commit:   c4154f3d2ff5cb128c11a92e619a5904588123a1
 git dirty:    no  (sampled before the build wrote anything)
 shift depth:  12  (=> 8.33 MHz on both channels)
 WNS:          0.208229 ns
-WHS:          0.025308 ns
+WHS:          0.024302 ns
 clock:        dec_clk period 120.000 ns
 clock:        dec2_clk period 120.000 ns

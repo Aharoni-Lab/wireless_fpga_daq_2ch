@@ -70,12 +70,12 @@ Both channels can be captured at once but not *displayed* live at once.
 `StreamDaq` assumes one device, one pipe, one display. Nothing in the hardware
 prevents it.
 
-### Free-running write clock for `fifo2_out`
+### ~~Free-running write clock for `fifo2_out`~~ — closed
 
-The reset sequencer makes reset order irrelevant, but `fifo2_out`'s write clock
-is still a recovered clock. Crossing out of `dec2_clk` earlier — so the pipe-out
-FIFO's write side free-runs like channel 1's — would remove the whole class of
-problem. Not currently needed.
+`fifo2_out` no longer exists. Channel 2 caches into DDR3, so the FIFO the host
+reads (`fifo2_ddr3_out`) is written on `ui_clk` like channel 1's. No pipe-out
+FIFO in the design is written on a recovered clock any more. See
+[The FIFO reset sequencer](../design/reset-sequencer.md#the-weakness-that-used-to-be-here).
 
 ---
 

@@ -11,7 +11,7 @@ Confirmed on hardware 2026-09-18: two miniscopes streaming simultaneously for
 | | Channel 1 | Channel 2 |
 |---|---|---|
 | Input pin | J2-2 (`Y6`) | J2-4 (`AA6`) |
-| Buffering | DDR3 | block RAM (128 KB) |
+| Buffering | DDR3, 256 MiB ring | DDR3, 256 MiB ring |
 | USB endpoint | `0xA0` | `0xA1` |
 
 Both channels share one delay line, so they always run at the same data rate.

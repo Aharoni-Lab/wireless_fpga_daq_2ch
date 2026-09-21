@@ -19,12 +19,18 @@ XEM7310 serves two transmitters.
 |---|---|---|
 | Input pin | J2-2 (FPGA `Y6`) | J2-4 (FPGA `AA6`) |
 | Decoder | `mandec dec` | `mandec dec2` |
-| Buffering | FIFO chain → **DDR3** → FIFO | FIFO chain → **block RAM** FIFO |
+| Buffering | FIFO chain → **DDR3** → FIFO | FIFO chain → **DDR3** → FIFO |
 | USB endpoint | `okBTPipeOut` **0xA0** | `okBTPipeOut` **0xA1** |
 
 Both channels share one `c_shift_ram_0` delay line, so **they always run at the
 same data rate**. That rate is set at build time — see
 [Building a bitfile](build/building.md).
+
+They also share the one DDR3 controller, arbitrated round-robin between them,
+each with a 256 MiB ring of its own. Channel 2 used to make do with a 256 KB
+block-RAM buffer, and that asymmetry was the cause of every lost buffer ever
+measured on it — see
+[What channel 2 does differently](design/two-channel.md#sharing-one-memory-controller).
 
 ## Where to start
 

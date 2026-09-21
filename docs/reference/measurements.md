@@ -8,13 +8,20 @@ Two miniscopes, both transmitting, 8.33 Mbit/s each, 30 s, one XEM7310, one USB
 cable. Captured 2026-09-18 with `capture_both_channels.py` reading both
 endpoints from a single device handle.
 
-!!! warning "Taken with the 128 KB channel-2 FIFO"
+!!! warning "Taken with the 128 KB channel-2 FIFO — two buffer changes since"
     Every number in this section — and the ~159 ms hold time the explanation
-    below rests on — was measured with `fifo2_out` at 32768 × 32 bit. On
-    2026-09-21 it was doubled to 65536 × 32 bit (256 KB, ≈250 ms); see
-    [Two-channel design](../design/two-channel.md#no-ddr3). The 8.33 MHz
-    bitfile carries the larger buffer and **has not been re-measured yet**, so
-    treat everything here as the before-picture.
+    below rests on — was measured with `fifo2_out` at 32768 × 32 bit
+    (128 KB, ≈125 ms). Two things have happened since, neither re-measured:
+
+    | date | channel-2 buffer | holds |
+    |---|---|---|
+    | measured here | 32768 × 32 bit block RAM | ≈125 ms |
+    | 2026-09-21 | 65536 × 32 bit block RAM | ≈250 ms |
+    | 2026-09-21, `ch2-ddr3` | 256 MiB DDR3 ring | ≈4 min |
+
+    Treat everything below as the before-picture. The DDR3 branch is the one
+    that should end this table; see
+    [Sharing one memory controller](../design/two-channel.md#sharing-one-memory-controller).
 
 | | ch1 (0xA0 / J2-2) | ch2 (0xA1 / J2-4) |
 |---|---|---|
@@ -67,9 +74,20 @@ it because DDR3 gives it seconds of slack.
 
 !!! note "Current best explanation, not a closed case"
     The tail-latency reading fits every measurement above, but has not been
-    directly observed. Doubling the buffer to ≈250 ms is the test of it: if
+    directly observed. Doubling the buffer to ≈250 ms is one test of it: if
     the loss rate is unchanged at the same chunk sizes, the reading is wrong
     and the extra block RAM buys nothing.
+
+    The DDR3 branch is the decisive one. It takes the hold time to about four
+    minutes, which is far outside any plausible stall distribution, so:
+
+    - **`--chunk 64` must go to 0 lost buffers.** That is the ~390 ms stall
+      the 256 KB FIFO still cannot absorb, and it is the whole test.
+    - Channel 1 must stay at 0, which is the check that arbitrating the
+      controller did not cost channel 1 anything.
+    - If losses persist at any chunk size with minutes of buffer behind the
+      pipe, the cause is not buffer depth at all and this page's explanation
+      is wrong.
 
 ## Rate tolerance
 

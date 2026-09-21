@@ -9,8 +9,10 @@ Same design, same nine data rates, same FIFO reset fix as the committed set. The
 only difference is which three signals reach the debug pins.
 
 **These are all pre-2026-09-21 builds**, so every one of them carries the old
-128 KB `fifo2_out`. The source tree is now at 256 KB. Regenerate before using
-any of them to reason about channel-2 buffer loss.
+128 KB block-RAM `fifo2_out`. The source tree no longer has that FIFO at all —
+channel 2 caches into a 256 MiB DDR3 ring. Regenerate before using any of them
+to reason about channel-2 buffer loss; the number you would measure is from a
+design that no longer exists.
 
 | pin | committed set (`../`) | this set |
 |---|---|---|

@@ -300,7 +300,7 @@ module tb_USBInterface ();
     // matching hardware, where nothing guarantees a transmitter is driving J2-4
     // when the host pulses the reset wire-in. With no edges on manchester2 the
     // decoder's ring oscillator free-runs but o_clk stalls, so dec2_clk does not
-    // tick and fifo2_out's write domain sees no clock during its reset.
+    // tick and fifo2_ddr3_in's write domain sees no clock during its reset.
 {% endif %}
     wait (input_stream);
     fd_input2 = $fopen("{{STIMULUS2_FNAME}}", "r");
