@@ -451,19 +451,6 @@
         <Option Name="xsim.simulate.wdb" Val="C:/Users/marce/Documents/Git/wireless_fpga_daq/hdl/source/sim/runs/test-1789611451/waveform.wdb"/>
       </Config>
     </FileSet>
-    <FileSet Name="fifo_w32_65536_r32_65536" Type="BlockSrcs" RelSrcDir="$PSRCDIR/fifo_w32_65536_r32_65536" RelGenDir="$PGENDIR/fifo_w32_65536_r32_65536">
-      <File Path="$PSRCDIR/sources_1/ip/fifo_w32_65536_r32_65536/fifo_w32_65536_r32_65536.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <Config>
-        <Option Name="TopModule" Val="fifo_w32_65536_r32_65536"/>
-        <Option Name="UseBlackboxStub" Val="1"/>
-      </Config>
-    </FileSet>
   </FileSets>
   <Simulators>
     <Simulator Name="XSim">
@@ -555,16 +542,6 @@
       <RQSFiles/>
     </Run>
     <Run Id="xem7310_a75_mig_synth_1" Type="Ft3:Synth" SrcSet="xem7310_a75_mig" Part="xc7a75tfgg484-1" ConstrsSet="xem7310_a75_mig" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/xem7310_a75_mig_synth_1" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/xem7310_a75_mig_synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/xem7310_a75_mig_synth_1">
-      <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2023"/>
-        <Step Id="synth_design"/>
-      </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
-      <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2023"/>
-      <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
-      <RQSFiles/>
-    </Run>
-    <Run Id="fifo_w32_65536_r32_65536_synth_1" Type="Ft3:Synth" SrcSet="fifo_w32_65536_r32_65536" Part="xc7a75tfgg484-1" ConstrsSet="fifo_w32_65536_r32_65536" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" Dir="$PRUNDIR/fifo_w32_65536_r32_65536_synth_1" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/fifo_w32_65536_r32_65536_synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/fifo_w32_65536_r32_65536_synth_1">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2023"/>
         <Step Id="synth_design"/>
@@ -695,23 +672,6 @@
       <RQSFiles/>
     </Run>
     <Run Id="xem7310_a75_mig_impl_1" Type="Ft2:EntireDesign" Part="xc7a75tfgg484-1" ConstrsSet="xem7310_a75_mig" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="xem7310_a75_mig_synth_1" IncludeInArchive="false" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/xem7310_a75_mig_impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/xem7310_a75_mig_impl_1">
-      <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2023"/>
-        <Step Id="init_design"/>
-        <Step Id="opt_design"/>
-        <Step Id="power_opt_design"/>
-        <Step Id="place_design"/>
-        <Step Id="post_place_power_opt_design"/>
-        <Step Id="phys_opt_design"/>
-        <Step Id="route_design"/>
-        <Step Id="post_route_phys_opt_design"/>
-        <Step Id="write_bitstream"/>
-      </Strategy>
-      <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2023"/>
-      <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
-      <RQSFiles/>
-    </Run>
-    <Run Id="fifo_w32_65536_r32_65536_impl_1" Type="Ft2:EntireDesign" Part="xc7a75tfgg484-1" ConstrsSet="fifo_w32_65536_r32_65536" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" SynthRun="fifo_w32_65536_r32_65536_synth_1" IncludeInArchive="false" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/fifo_w32_65536_r32_65536_impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/fifo_w32_65536_r32_65536_impl_1">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2023"/>
         <Step Id="init_design"/>

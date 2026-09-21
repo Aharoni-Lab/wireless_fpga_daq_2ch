@@ -115,9 +115,8 @@ module USBInterface (
   wire          fifo_ddr3_out_rd_en;
   wire          fifo_ddr3_out_ready;  // ready for ddr3 write
   wire [   6:0] fifo_ddr3_out_wr_data_count;
-  wire [ 255:0] fifo_ddr3_out_din;
   wire [  31:0] fifo_ddr3_out_dout;
-  // FIFO, channel 2 (BRAM only, no DDR3)
+  // FIFO, channel 2. Mirrors channel 1 exactly, DDR3 included.
   (* mark_debug = "true" *) wire fifo2_chain0_full;
   (* mark_debug = "true" *) wire fifo2_chain0_empty;
   wire          fifo2_chain0_wr_en;
@@ -126,11 +125,20 @@ module USBInterface (
   (* mark_debug = "true" *) wire fifo2_chain1_empty;
   wire          fifo2_chain1_wr_en;
   wire [  31:0] fifo2_chain1_dout;
-  (* mark_debug = "true" *) wire fifo2_out_full;
-  (* mark_debug = "true" *) wire fifo2_out_empty;
-  (* mark_debug = "true" *) wire fifo2_out_wr_en;
-  (* mark_debug = "true" *) wire fifo2_out_rd_en;
-  wire [  31:0] fifo2_out_dout;
+  (* mark_debug = "true" *) wire fifo2_ddr3_in_full;
+  (* mark_debug = "true" *) wire fifo2_ddr3_in_empty;
+  (* mark_debug = "true" *) wire fifo2_ddr3_in_wr_en;
+  wire          fifo2_ddr3_in_rd_en;
+  wire          fifo2_ddr3_in_ready;  // ready for ddr3 read
+  wire [   6:0] fifo2_ddr3_in_rd_data_count;
+  wire [ 255:0] fifo2_ddr3_in_dout;
+  (* mark_debug = "true" *) wire fifo2_ddr3_out_full;
+  (* mark_debug = "true" *) wire fifo2_ddr3_out_empty;
+  wire          fifo2_ddr3_out_wr_en;
+  (* mark_debug = "true" *) wire fifo2_ddr3_out_rd_en;
+  wire          fifo2_ddr3_out_ready;  // ready for ddr3 write
+  wire [   6:0] fifo2_ddr3_out_wr_data_count;
+  wire [  31:0] fifo2_ddr3_out_dout;
 
   // ddr3
   reg           sys_rst;
@@ -151,15 +159,21 @@ module USBInterface (
   wire          ui_clk_sync_rst;
   wire          ui_full;
   wire          ui_empty;
+  wire          ui_full2;
+  wire          ui_empty2;
+  // Read data out of DDR3, shared by both output FIFOs. Only the write enable
+  // ddr3_ui raises says which channel the burst belongs to.
+  wire [ 255:0] ddr3_ob_data;
 
   //=============== Instantiation ===============
 
   // Control signals. These were implicit nets; declared explicitly so the reset
   // ordering can be probed. That ordering is the one thing the testbench does
   // differently from the host: it pulses both channels while fifo_reset is
-  // asserted, so dec2_clk is running when fifo2_out resets, and hardware has no
-  // such guarantee. fifo2_out is the only pipe-out FIFO whose write clock is a
-  // recovered clock rather than a free-running one.
+  // asserted, so dec2_clk is running when fifo2_ddr3_in resets, and hardware
+  // has no such guarantee. Both channels have a FIFO written on a recovered
+  // clock -- fifo_ddr3_in and fifo2_ddr3_in -- so both need the sequencer
+  // below.
   (* mark_debug = "true" *) wire fifo_reset;
   (* mark_debug = "true" *) wire dec_reset;
   wire ddr3_reset;
@@ -278,8 +292,9 @@ module USBInterface (
   //
   // BOTH channels are exposed to this. Channel 1 only escapes it in practice
   // because its transmitter is always already streaming when the host resets.
-  // Note this is also why moving channel 2 onto DDR3 would not help: the
-  // vulnerable FIFO is fifo_ddr3_in, which is written on dec_clk just the same.
+  // Note this is why putting channel 2 behind DDR3 did not retire this
+  // sequencer: fifo2_ddr3_in is written on dec2_clk exactly as fifo2_out was.
+  // Relocating the buffer fixed the capacity problem, not the reset one.
   //
   // So do not hand the host's reset straight to those FIFOs. Hold each channel's
   // reset until its own recovered clock has actually been seen ticking, then
@@ -364,10 +379,9 @@ module USBInterface (
       .rd_rst_busy ()                     // output wire rd_rst_busy
   );
 
-  // FIFO, channel 2: 1 bit -> 4 bit -> 32 bit, then a 64k-word BRAM buffer to okClk
-  assign fifo2_chain0_wr_en = ~fifo2_chain0_full;
-  assign fifo2_chain1_wr_en = (~fifo2_chain0_empty) & (~fifo2_chain1_full);
-  assign fifo2_out_wr_en    = (~fifo2_chain1_empty) & (~fifo2_out_full);
+  // FIFO, channel 2: 1 bit -> 4 bit -> 32 bit, then into DDR3 like channel 1
+  assign fifo2_chain0_wr_en   = ~fifo2_chain0_full;
+  assign fifo2_chain1_wr_en   = (~fifo2_chain0_empty) & (~fifo2_chain1_full);
   fifo_w1_1024_r4_256 fifo2_chain0 (
       .clk         (dec2_clk),
       .rst         (dec2_fifo_reset),
@@ -387,7 +401,7 @@ module USBInterface (
       .rst         (dec2_fifo_reset),
       .din         (fifo2_chain0_dout),
       .wr_en       (fifo2_chain1_wr_en),
-      .rd_en       (fifo2_out_wr_en),
+      .rd_en       (fifo2_ddr3_in_wr_en),
       .dout        (fifo2_chain1_dout),
       .full        (),
       .almost_full (fifo2_chain1_full),
@@ -396,27 +410,14 @@ module USBInterface (
       .wr_rst_busy (),
       .rd_rst_busy ()
   );
-  // Created by hdl/build/add_ch2_fifo.tcl (fifo_generator 13.2, independent clocks, 32x65536)
-  fifo_w32_65536_r32_65536 fifo2_out (
-      .rst        (dec2_fifo_reset),
-      .wr_clk     (dec2_clk),
-      .rd_clk     (okClk),
-      .din        (fifo2_chain1_dout),
-      .wr_en      (fifo2_out_wr_en),
-      .rd_en      (fifo2_out_rd_en),
-      .dout       (fifo2_out_dout),
-      .full       (),
-      .empty      (),
-      .prog_full  (fifo2_out_full),
-      .prog_empty (fifo2_out_empty),
-      .wr_rst_busy(),
-      .rd_rst_busy()
-  );
 
   // ddr3
-  assign fifo_ddr3_in_wr_en  = (~fifo_chain1_empty) & (~fifo_ddr3_in_full);
-  assign fifo_ddr3_in_ready  = (~fifo_ddr3_in_empty) & (~ui_full);
-  assign fifo_ddr3_out_ready = (~fifo_ddr3_out_full) & (~ui_empty);
+  assign fifo_ddr3_in_wr_en   = (~fifo_chain1_empty) & (~fifo_ddr3_in_full);
+  assign fifo_ddr3_in_ready   = (~fifo_ddr3_in_empty) & (~ui_full);
+  assign fifo_ddr3_out_ready  = (~fifo_ddr3_out_full) & (~ui_empty);
+  assign fifo2_ddr3_in_wr_en  = (~fifo2_chain1_empty) & (~fifo2_ddr3_in_full);
+  assign fifo2_ddr3_in_ready  = (~fifo2_ddr3_in_empty) & (~ui_full2);
+  assign fifo2_ddr3_out_ready = (~fifo2_ddr3_out_full) & (~ui_empty2);
   fifo_w32_1024_r256_128 fifo_ddr3_in (
       .rst          (dec_fifo_reset),                  // input wire rst
       .wr_clk       (dec_clk),                     // input wire wr_clk
@@ -437,7 +438,7 @@ module USBInterface (
       .rst          (fifo_reset),                   // input wire rst
       .wr_clk       (ui_clk),                       // input wire wr_clk
       .rd_clk       (okClk),                        // input wire rd_clk
-      .din          (fifo_ddr3_out_din),            // input wire [255 : 0] din
+      .din          (ddr3_ob_data),            // input wire [255 : 0] din
       .wr_en        (fifo_ddr3_out_wr_en),          // input wire wr_en
       .rd_en        (fifo_ddr3_out_rd_en),          // input wire rd_en
       .dout         (fifo_ddr3_out_dout),           // output wire [31 : 0] dout
@@ -449,25 +450,75 @@ module USBInterface (
       .wr_rst_busy  (),                             // output wire wr_rst_busy
       .rd_rst_busy  ()                              // output wire rd_rst_busy
   );
+  // Channel 2's pair, identical to channel 1's above. Note the reset sources
+  // differ between them for the same reason they do on channel 1:
+  // fifo2_ddr3_in is written on dec2_clk and needs the sequenced reset, while
+  // fifo2_ddr3_out sits between two free-running clocks and takes the host's
+  // reset directly.
+  fifo_w32_1024_r256_128 fifo2_ddr3_in (
+      .rst          (dec2_fifo_reset),
+      .wr_clk       (dec2_clk),
+      .rd_clk       (ui_clk),
+      .din          (fifo2_chain1_dout),
+      .wr_en        (fifo2_ddr3_in_wr_en),
+      .rd_en        (fifo2_ddr3_in_rd_en),
+      .dout         (fifo2_ddr3_in_dout),
+      .full         (),
+      .empty        (),
+      .almost_empty (fifo2_ddr3_in_empty),
+      .rd_data_count(fifo2_ddr3_in_rd_data_count),
+      .prog_full    (fifo2_ddr3_in_full),
+      .wr_rst_busy  (),
+      .rd_rst_busy  ()
+  );
+  fifo_w256_128_r32_1024 fifo2_ddr3_out (
+      .rst          (fifo_reset),
+      .wr_clk       (ui_clk),
+      .rd_clk       (okClk),
+      .din          (ddr3_ob_data),
+      .wr_en        (fifo2_ddr3_out_wr_en),
+      .rd_en        (fifo2_ddr3_out_rd_en),
+      .dout         (fifo2_ddr3_out_dout),
+      .full         (),
+      .almost_full  (fifo2_ddr3_out_full),
+      .empty        (),
+      .wr_data_count(fifo2_ddr3_out_wr_data_count),
+      .prog_empty   (fifo2_ddr3_out_empty),
+      .wr_rst_busy  (),
+      .rd_rst_busy  ()
+  );
   ddr3_ui u_ddr3_ui (
       .clk              (ui_clk),
       .reset            (ddr3_reset | ui_clk_sync_rst),
+      .calib_done       (init_calib_complete),
+      // channel 1
       .reads_en         (fifo_ddr3_out_ready),
       .writes_en        (fifo_ddr3_in_ready),
-      .calib_done       (init_calib_complete),
       .full             (ui_full),
       .empty            (ui_empty),
-      // input fifo
       .ib_re            (fifo_ddr3_in_rd_en),
       .ib_data          (fifo_ddr3_in_dout),
       .ib_count         (fifo_ddr3_in_rd_data_count),
       .ib_valid         (fifo_ddr3_in_ready),
-      .ib_empty         (),
-      // output fifo
+      .ib_empty         (1'b0),
       .ob_we            (fifo_ddr3_out_wr_en),
-      .ob_data          (fifo_ddr3_out_din),
       .ob_count         (fifo_ddr3_out_wr_data_count),
-      .ob_full          (),
+      .ob_full          (1'b0),
+      // channel 2
+      .reads2_en        (fifo2_ddr3_out_ready),
+      .writes2_en       (fifo2_ddr3_in_ready),
+      .full2            (ui_full2),
+      .empty2           (ui_empty2),
+      .ib2_re           (fifo2_ddr3_in_rd_en),
+      .ib2_data         (fifo2_ddr3_in_dout),
+      .ib2_count        (fifo2_ddr3_in_rd_data_count),
+      .ib2_valid        (fifo2_ddr3_in_ready),
+      .ib2_empty        (1'b0),
+      .ob2_we           (fifo2_ddr3_out_wr_en),
+      .ob2_count        (fifo2_ddr3_out_wr_data_count),
+      .ob2_full         (1'b0),
+      // read data, shared
+      .ob_data          (ddr3_ob_data),
       // mig app interface
       .app_rdy          (app_rdy),
       .app_en           (app_en),
@@ -536,12 +587,12 @@ module USBInterface (
   assign pipe_ready = ~fifo_ddr3_out_empty;
 
   assign pipe2_datain = {
-    fifo2_out_dout[7:0],
-    fifo2_out_dout[15:8],
-    fifo2_out_dout[23:16],
-    fifo2_out_dout[31:24]
+    fifo2_ddr3_out_dout[7:0],
+    fifo2_ddr3_out_dout[15:8],
+    fifo2_ddr3_out_dout[23:16],
+    fifo2_ddr3_out_dout[31:24]
   };
-  assign pipe2_ready = ~fifo2_out_empty;
+  assign pipe2_ready = ~fifo2_ddr3_out_empty;
 
   okWireOR #(
       .N(2)
@@ -582,7 +633,7 @@ module USBInterface (
       .okHE(okHE),
       .okEH(okEHx[129:65]),
       .ep_addr(8'ha1),
-      .ep_read(fifo2_out_rd_en),
+      .ep_read(fifo2_ddr3_out_rd_en),
       .ep_blockstrobe(),
       .ep_datain(pipe2_datain),
       .ep_ready(pipe2_ready)
