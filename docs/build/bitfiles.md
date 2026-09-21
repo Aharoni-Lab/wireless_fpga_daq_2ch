@@ -27,10 +27,14 @@ Debug pins carry `dec_clk`, `dec2_clk`, `pipe2_ready`.
 | `USBInterface-25mhz-J2_2+J2_4-3v3-IEEE.bit` | 4 | 25 MHz | 128 KB | 0.208229 ns | — |
 | `USBInterface-33_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 3 | 33.33 MHz | 128 KB | 0.208229 ns | — |
 | `USBInterface-50mhz-J2_2+J2_4-3v3-IEEE.bit` | 2 | 50 MHz | 128 KB | 0.208229 ns | — |
-| `USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 12 | 8.33 MHz | 256 KB | 0.208229 ns | **yes, both channels** |
+| `USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` | 12 | 8.33 MHz | 256 KB | 0.208229 ns | decoder yes; **256 KB buffer not yet** |
 
 **8.33 MHz is the one to use** — it matches the transmitters in current service
-and is the only rate confirmed decoding on hardware.
+and is the only rate confirmed decoding on hardware. That confirmation predates
+the 256 KB buffer: the decoder, pinout and reset sequencing are unchanged, but
+the loss rate this build was made to improve has not been re-measured. Built
+2026-09-21 from a clean tree, WNS 0.208229 ns, WHS 0.025308 ns, `dec_clk` and
+`dec2_clk` timed at 120.000 ns, 70 of 105 block-RAM tiles.
 
 ## `hdl/build/ch1_debug/`
 
