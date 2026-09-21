@@ -39,14 +39,6 @@ the loss rate this build was made to improve has not been re-measured. Built
 because deleting the 256 KB channel-2 FIFO freed 50 tiles that the two small
 DDR3 FIFOs replacing it do not need.
 
-!!! note "Built at `c4154f3`, not at branch HEAD"
-    Later commits on `ch2-ddr3` are simulation-only — the MIG behavioural
-    model, the testbench wiring, and docs. The one design-file change among
-    them is an `ifdef` that selects the model, and it resolves to the real
-    `xem7310_a75_mig` whenever `SIM_MIG_MODEL` is not defined, which is
-    everywhere except the simulation fileset. The synthesised netlist is
-    unchanged, so the bitfile has not been rebuilt for them.
-
 !!! note "Timing did not move"
     WNS is 0.208229 ns, the same value every build of this design has had at
     every rate. Arbitrating the memory controller between two channels cost
