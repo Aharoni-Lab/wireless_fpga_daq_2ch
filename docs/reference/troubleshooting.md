@@ -93,3 +93,10 @@ Two rules, both learned expensively:
 `build_bitfile.tcl` enforces the first by writing a `.txt` stamp with the git
 commit and a dirty flag. If a stamp says `git dirty: yes`, that build is not
 reproducible.
+
+!!! warning "Stamps built before 2026-09-21 all say `git dirty: yes`"
+    The flag was sampled *after* the script had copied the `.bit` over a tracked
+    file and Vivado had rewritten the `.xpr`, so git always had something to
+    report and the answer was always `yes`. It never distinguished a clean build
+    from a dirty one. It is now sampled before the build writes anything, and
+    the stamp says so. Read the older stamps as "unknown", not as "dirty".

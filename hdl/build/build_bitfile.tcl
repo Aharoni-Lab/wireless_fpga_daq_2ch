@@ -31,7 +31,20 @@ set here [file normalize [file dirname [info script]]]
 set xpr  [file join $here wireless_daq.xpr]
 if {![file exists $xpr]} { error "project not found: $xpr" }
 
+# Sample the working tree BEFORE anything is written. Asking afterwards is
+# what the stamp used to do, and it could only ever answer "yes": by that point
+# the script has copied the .bit over a tracked file and Vivado has rewritten
+# the .xpr, so git always had something to report. Every stamp in the repo says
+# "git dirty: yes" for that reason alone, which made the flag -- and the rule in
+# docs/reference/troubleshooting.md that rests on it -- carry no information.
+set git_commit [exec git -C $here rev-parse HEAD]
+set git_dirty  [expr {[string length [exec git -C $here status --porcelain]] ? {yes} : {no}}]
+
 puts "=== build_bitfile.tcl: Depth $depth -> [format %.2f $rate_mhz] MHz ==="
+puts "source tree at $git_commit, dirty: $git_dirty"
+if {$git_dirty eq "yes"} {
+    puts "WARNING: uncommitted changes -- this build will not be reproducible."
+}
 open_project $xpr
 
 # Rate. Regenerate the IP only when the value actually changes, so a repeat
@@ -172,8 +185,8 @@ set fh [open $stamp w]
 puts $fh "bitfile:      [file tail $dst]"
 puts $fh "built:        [clock format [clock seconds] -format {%Y-%m-%d %H:%M:%S}]"
 puts $fh "vivado:       [version -short]"
-puts $fh "git commit:   [exec git -C $here rev-parse HEAD]"
-puts $fh "git dirty:    [expr {[string length [exec git -C $here status --porcelain]] ? {yes} : {no}}]"
+puts $fh "git commit:   $git_commit"
+puts $fh "git dirty:    $git_dirty  (sampled before the build wrote anything)"
 puts $fh "shift depth:  $depth  (=> [format %.2f $rate_mhz] MHz on both channels)"
 puts $fh "WNS:          $wns ns"
 puts $fh "WHS:          $whs ns"
