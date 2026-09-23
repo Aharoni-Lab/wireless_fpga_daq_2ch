@@ -33,7 +33,6 @@ nav:
   - Design:
       - Signal chain: design/overview.md
       - Manchester decoder: design/decoder.md
-      - What channel 2 does differently: design/two-channel.md
       - The FIFO reset sequencer: design/reset-sequencer.md
   - Building:
       - Vivado setup: build/vivado-setup.md
@@ -45,5 +44,4 @@ nav:
       - Host side (miniscope-io): host/capture.md
   - Reference:
       - Pinout: reference/pinout.md
-      - Measurements: reference/measurements.md
       - Troubleshooting: reference/troubleshooting.md

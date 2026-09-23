@@ -40,7 +40,7 @@ Three spare output pins. Which signals they carry is set by `DEBUG_MODE` in
     | J2-18 | `Y1` | `init_calib_complete` |
     | J2-26 | `AA14` | `dec_data_bit` |
 
-    The channel-1-era set. Note none of these is a recovered clock, which is the
+    Channel-1 debug signals. None of these is a recovered clock, which is the
     single most useful signal when trying an unfamiliar rate.
 
 !!! danger "`dbg_sig1` does not exist on this design"
@@ -60,9 +60,8 @@ Three spare output pins. Which signals they carry is set by `DEBUG_MODE` in
 The host reset sequence used by miniscope-io is `0b0010`, `0b0`, `0b1000`,
 `0b0` — pulse `fifo_reset`, then `ddr3_reset`.
 
-Since the [reset sequencer](../design/reset-sequencer.md), `fifo_reset` no
-longer reaches the recovered-clock FIFOs directly; it arms the per-channel
-sequencers instead.
+`fifo_reset` does not reach the recovered-clock FIFOs directly; it arms the
+per-channel [reset sequencers](../design/reset-sequencer.md).
 
 ## Clocks
 

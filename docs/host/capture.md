@@ -10,6 +10,11 @@ and raw binary.
     name unchanged — miniscope-io parses it, and its test suite checks the
     format.
 
+!!! warning "Two-channel support is not in upstream miniscope-io yet"
+    `pipe_addr`, the `-ch1-alt` / `-ch2-alt` configs and
+    `capture_both_channels.py` described below are not merged into
+    miniscope-io's main branch yet.
+
 Both channels arrive over **one USB cable**. The FPGA exposes them as two
 separate block-pipe endpoints, so the host opens the board once and chooses
 which endpoint to read.
@@ -29,7 +34,7 @@ bitstream: "XEM7310-A75/USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit"
 pipe_addr: 0xA1     # channel 2; 0xA0 is channel 1
 ```
 
-Configs shipped with miniscope-io:
+The two-channel configs:
 
 | Config id | Endpoint | Pin |
 |---|---|---|
@@ -76,6 +81,4 @@ Per channel at 8.33 Mbit/s with 200×200 px frames:
   short read
 
 Verify a capture by checking `buffer_count` increments by 1 and
-`dropped_buffer_count` stays 0. See
-[Measurements](../reference/measurements.md#two-channel-capture) for reference
-numbers, including the known channel-2 loss rate under simultaneous capture.
+`dropped_buffer_count` stays 0.

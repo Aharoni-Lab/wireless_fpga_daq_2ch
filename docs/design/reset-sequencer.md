@@ -1,28 +1,22 @@
 # The FIFO reset sequencer
 
-This is the change that made channel 2 work. If you modify reset logic, read
-this first — the failure it prevents is silent, permanent, and looks like dead
-hardware.
+If you modify reset logic, read this first — the failure it prevents is silent,
+permanent, and looks like dead hardware.
 
 ## The failure
 
 Every FIFO ahead of DDR3 is clocked by a recovered clock, and
 [`mandec` stalls that clock when it sees no valid Manchester symbols](decoder.md#clock-recovery).
 
-`fifo2_ddr3_in` is a `fifo_generator` core with an **asynchronous reset and the
-safety circuit enabled**. Such a core needs *both* of its clocks running to
-complete a reset. So:
+`fifo_ddr3_in` and `fifo2_ddr3_in` are `fifo_generator` cores with an
+**asynchronous reset and the safety circuit enabled**. Such a core needs *both*
+of its clocks running to complete a reset. So, without the sequencer:
 
 > Pulse `fifo_reset` while channel 2 is idle, and `fifo2_ddr3_in` never starts
 > accepting writes. Nothing ever reaches DDR3, so `fifo2_ddr3_out` stays empty,
 > `prog_empty` stays asserted, `ep_ready` never rises,
 > `ReadFromBlockPipeOut(0xA1, ...)` blocks forever — **and it does not recover
 > when data arrives later.**
-
-!!! note "This used to be `fifo2_out`"
-    Before channel 2 moved onto DDR3 the vulnerable core was `fifo2_out`, the
-    block-RAM buffer that fed pipe `0xA1` directly. The failure is identical,
-    one stage earlier in the chain.
 
 On the host that looks like:
 
@@ -32,13 +26,19 @@ On the host that looks like:
 StreamReadError: Read failed: -1
 ```
 
-Channel 1 escaped this only by luck: its transmitter was always already
-streaming when the host reset the board.
+Channel 1 has the same exposure through `fifo_ddr3_in`.
+
+## Why DDR3 did not remove it
+
+DDR3 fixed capacity, and it put the FIFO the host reads (`fifo*_ddr3_out`) on
+the free-running `ui_clk`, so a quiet transmitter can no longer freeze a pipe's
+readiness. It did not change the input side: `fifo_ddr3_in` and `fifo2_ddr3_in`
+are still written on the recovered clocks, so the sequencer is still required.
 
 ## The fix
 
-Each channel now gets its own reset sequencer instead of the host's reset
-reaching the FIFOs directly:
+Each channel has its own reset sequencer; the host's reset does not reach these
+FIFOs directly:
 
 1. A free-running toggle in each recovered-clock domain,
 2. synchronised into `okClk` through an `ASYNC_REG` chain and edge-detected,
@@ -72,35 +72,19 @@ channel-2 transmitter, so running one channel alone is fine.
 
 In simulation, channel 2 through pipe `0xa1`:
 
-| scenario | before | after |
+| scenario | without sequencer | with sequencer |
 |---|---|---|
 | ch2 idle during `fifo_reset` | NO DATA (blocked on `ep_ready`) | error rate 0.0 |
 | ch2 active during `fifo_reset` | error rate 0.0 | error rate 0.0 |
 
-Confirmed on hardware 2026-09-18: starting the capture **before** the channel-2
-transmitter — the exact condition that used to hang forever — now streams
-cleanly with 0 dropped buffers.
+The default testbench run keeps channel 2 active during the reset. The idle
+case — the one hardware actually hits — needs `CH2_RESET_PULSES=0`; see
+[Running the testbench](../simulation/testbench.md).
 
-!!! note "Expected behaviour change"
-    A channel now **stays held in reset until its transmitter appears**, rather
-    than idling empty. With no channel-2 transmitter connected, `pipe2_ready`
-    on J2-26 sits low and pipe `0xA1` returns nothing. That is correct, not a
-    fault.
+On hardware, starting the capture **before** the channel-2 transmitter streams
+cleanly with 0 dropped buffers (confirmed 2026-09-18).
 
-## The weakness that used to be here
-
-This section used to read:
-
-> The sequencer makes reset order irrelevant, but `fifo2_out`'s write clock is
-> still a recovered clock. The durable fix is to cross out of `dec2_clk`
-> earlier so the pipe-out FIFO's write side free-runs like channel 1's.
-
-Moving channel 2 onto DDR3 did exactly that, as a side effect of doing it for
-capacity: `fifo2_ddr3_out` is written on `ui_clk`, so **no pipe-out FIFO in
-the design is written on a recovered clock any more**. Both pipes now present
-the host with a readiness signal that cannot be frozen by a transmitter going
-quiet.
-
-The sequencer is still required. It just protects one FIFO per channel now
-(`fifo_ddr3_in` and `fifo2_ddr3_in`) rather than a FIFO the host reads
-directly.
+!!! note "A channel without a transmitter stays in reset"
+    A channel stays held in reset until its transmitter appears. With no
+    channel-2 transmitter connected, `pipe2_ready` on J2-26 sits low and pipe
+    `0xA1` returns nothing. That is correct, not a fault.

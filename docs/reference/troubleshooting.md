@@ -9,16 +9,15 @@ StreamReadError: Read failed: -1
 
 `ep_ready` never rose, so the read timed out.
 
-1. **Is the channel-2 transmitter actually running?** Since the
-   [reset sequencer](../design/reset-sequencer.md), a channel is *held in reset
-   until its transmitter appears*. With nothing on J2-4, `pipe2_ready` (J2-26)
-   sits low and `0xA1` returns nothing. **This is correct behaviour.**
+1. **Is the channel-2 transmitter actually running?** A channel is *held in
+   reset until its transmitter appears* (see the
+   [reset sequencer](../design/reset-sequencer.md)). With nothing on J2-4,
+   `pipe2_ready` (J2-26) sits low and `0xA1` returns nothing. **This is correct
+   behaviour.**
 2. **Is `dec2_clk` (J2-18) ticking?** If dead, the decoder never locked — wrong
    rate, wrong convention, or no signal. If healthy while `pipe2_ready` stays
    low, the fault is the buffer or its reset, not the decoder.
-3. **Is this a pre-sequencer bitfile?** Before commit `bf9dbed`, resetting while
-   channel 2 was idle wedged the FIFO permanently. Check the `.txt` stamp.
-4. **Is it a single-channel bitfile?** Then `AA6` is an *output* and you have
+3. **Is it a single-channel bitfile?** Then `AA6` is an *output* and you have
    driver contention. Load a `J2_2+J2_4` file.
 
 ## Data looks like corruption, preamble not found
@@ -37,10 +36,9 @@ Normal. The last buffer of each frame is short: 7 × 5032 + 4776 = exactly
 
 ## Lost buffers on channel 2 during two-channel capture
 
-Known, quantified: ~11 buffers per 30 s, isolated single-buffer gaps, channel 1
-unaffected. See [Measurements](measurements.md#two-channel-capture) for what has
-been ruled out. Host-side mitigations are exhausted; the proposal below is the
-remaining lever.
+Check the bitfile first. The stale builds still give channel 2 the old 128 KB
+block-RAM buffer, which cannot ride out the host stalling on the other pipe; the
+8.33 MHz bitfile buffers channel 2 in DDR3. See [The bitfiles](../build/bitfiles.md).
 
 ## Simulation hangs with no output
 
@@ -51,9 +49,11 @@ TIMEOUT: no $finish after 8000000 ns.
   A pipe read is most likely still blocked waiting on ep_ready.
 ```
 
-That is the reset-ordering signature. Also note **DDR3 calibration does not
-converge in simulation**, so channel 1 cannot be exercised there — use
-`CH2_ONLY=1`.
+That is the signature of a FIFO reset that never completed — see
+[The FIFO reset sequencer](../design/reset-sequencer.md). With `REAL_MIG=1` it
+is expected: MIG calibration never converges in simulation, which is why the
+default run uses a behavioural model — see
+[Running the testbench](../simulation/testbench.md#the-memory-controller-is-a-model).
 
 ## Vivado cannot find `mig.prj`
 
@@ -70,12 +70,16 @@ Both channels can be captured at once but not *displayed* live at once.
 `StreamDaq` assumes one device, one pipe, one display. Nothing in the hardware
 prevents it.
 
-### ~~Free-running write clock for `fifo2_out`~~ — closed
+### Other rates
 
-`fifo2_out` no longer exists. Channel 2 caches into DDR3, so the FIFO the host
-reads (`fifo2_ddr3_out`) is written on `ui_clk` like channel 1's. No pipe-out
-FIFO in the design is written on a recovered clock any more. See
-[The FIFO reset sequencer](../design/reset-sequencer.md#the-weakness-that-used-to-be-here).
+Only 8.33 MHz is built from the current source and working on hardware. The
+other rates need rebuilding and a bench run — see
+[The bitfiles](../build/bitfiles.md).
+
+### Two-channel support in miniscope-io
+
+`pipe_addr`, the two-channel configs and `capture_both_channels.py` are not
+merged into upstream miniscope-io yet — see [Host side](../host/capture.md).
 
 ---
 
@@ -83,10 +87,9 @@ FIFO in the design is written on a recovered clock any more. See
 
 Two rules, both learned expensively:
 
-1. **Never ship a bitfile you cannot rebuild.** Early single-channel "control"
-   bitfiles were built from an uncommitted source edit. They produced 39%
-   corrupt buffers, and anyone flashing one as a control would conclude the rig
-   or the branch was broken. They are not in this repository.
+1. **Never ship a bitfile you cannot rebuild.** One built from an uncommitted
+   edit misleads whoever flashes it next — as a control, it makes a working rig
+   look broken.
 2. **Keep IP names honest.** A core named `..._32768` that is actually 65536
    deep will mislead the next person.
 
@@ -95,8 +98,6 @@ commit and a dirty flag. If a stamp says `git dirty: yes`, that build is not
 reproducible.
 
 !!! warning "Stamps built before 2026-09-21 all say `git dirty: yes`"
-    The flag was sampled *after* the script had copied the `.bit` over a tracked
-    file and Vivado had rewritten the `.xpr`, so git always had something to
-    report and the answer was always `yes`. It never distinguished a clean build
-    from a dirty one. It is now sampled before the build writes anything, and
-    the stamp says so. Read the older stamps as "unknown", not as "dirty".
+    Those builds sampled the flag after the build had already modified tracked
+    files, so it always read `yes`. Read those stamps as "unknown", not as
+    "dirty". Current stamps say `(sampled before the build wrote anything)`.

@@ -5,8 +5,8 @@ wireless miniscope project. Two miniscopes, one FPGA, one USB cable.
 
 **📖 Full documentation: <https://aharoni-lab.com/wireless_fpga_daq_2ch/>**
 
-Confirmed on hardware 2026-09-18: two miniscopes streaming simultaneously for
-30 s at 8.33 Mbit/s each, zero dropped buffers on either channel.
+Status: 8.33 MHz works on hardware — two miniscopes streaming at once, both
+channels buffered in DDR3. The other rates still have to be rebuilt and run.
 
 | | Channel 1 | Channel 2 |
 |---|---|---|
@@ -19,7 +19,8 @@ Both channels share one delay line, so they always run at the same data rate.
 ## Quick start
 
 Recording is done with [miniscope-io (`mio`)](https://github.com/miniscope/mio), which flashes the bitfile and
-reads the stream.
+reads the stream. Its two-channel support (`pipe_addr` and the `-ch1-alt` /
+`-ch2-alt` configs) is not merged upstream yet.
 
 Copy `hdl/build/USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit` — the only rate
 confirmed on hardware — into `mio/devices/XEM7310-A75/` in your miniscope-io

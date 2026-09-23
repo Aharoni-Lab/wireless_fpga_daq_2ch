@@ -27,8 +27,9 @@ Manchester violation. That masking is the decoder's built-in error check.
 !!! danger "The recovered clock stops when the input goes idle"
     `read_switch` updates only on a `00`/`11` symbol, and it updates so as to
     cancel the XOR. With a static input the recovered clock does not free-run —
-    **it stops.** Every FIFO clocked by it stops with it. This is the root of
-    the channel-2 bug; see [The FIFO reset sequencer](reset-sequencer.md).
+    **it stops.** That is inherent to the circuit, not a fault, but every FIFO
+    clocked by it stops too, which is why those FIFOs need a sequenced reset —
+    see [The FIFO reset sequencer](reset-sequencer.md).
 
 ![mandec schematic](../imgs/schematics/mandec.png)
 
@@ -70,5 +71,5 @@ Not every rate is reachable, since `Depth` is an integer. Use
 [`build_bitfile.tcl`](../build/building.md) rather than editing the IP by hand —
 it forces the IP to regenerate, which a manual edit does not always do.
 
-For how much the transmitter may drift off nominal, see
-[Measurements](../reference/measurements.md#rate-tolerance).
+Tolerance to an off-nominal transmitter shrinks as the rate goes up, and it is
+asymmetric: a transmitter running fast breaks decoding before one running slow.

@@ -22,11 +22,9 @@ The rate applies to **both channels**.
 
 ## Why not do it by hand
 
-Until `build_bitfile.tcl` existed, nothing forced `c_shift_ram_0` to regenerate
-when its `Depth` changed. A build could be labelled one rate and synthesised at
-another, and several early bitfiles could not be reproduced from any committed
-tree. The script removes that whole class of mistake — prefer it over clicking
-through *Re-customize IP*.
+Changing `Depth` through *Re-customize IP* does not reliably regenerate
+`c_shift_ram_0`, so a build can be labelled one rate and synthesised at
+another. The script forces the regeneration — prefer it.
 
 ## The provenance stamp
 
@@ -34,13 +32,13 @@ Every build writes a `.txt` next to the bitfile:
 
 ```
 bitfile:      USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit
-built:        2026-09-17 13:20:49
+built:        2026-09-21 10:51:50
 vivado:       2023.2
-git commit:   081c9e919d7e0411e1549065bbee491b678bd321
-git dirty:    yes
+git commit:   a0e5c13f4e249f92e451aef61e1e4d2fc66d7a6e
+git dirty:    no  (sampled before the build wrote anything)
 shift depth:  12  (=> 8.33 MHz on both channels)
 WNS:          0.208229 ns
-WHS:          0.021344 ns
+WHS:          0.024302 ns
 clock:        dec_clk period 120.000 ns
 clock:        dec2_clk period 120.000 ns
 ```
@@ -51,8 +49,7 @@ uncommitted changes — treat that build as unreproducible.
 !!! warning "Timing is not the limit"
     WNS is 0.208 ns for **every** rate from 8.33 to 50 MHz, because the critical
     path is the DDR3/USB interface, not the decoder. A bitfile closing timing
-    tells you nothing about whether it can recover Manchester at that rate. See
-    [Measurements](../reference/measurements.md).
+    tells you nothing about whether it can recover Manchester at that rate.
 
 ## Naming
 
@@ -62,8 +59,9 @@ uncommitted changes — treat that build as unreproducible.
 USBInterface-<rate>-<input pins>-<IO voltage>-<Manchester convention>.bit
 ```
 
-e.g. `USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit`. No spaces, no extra periods;
-miniscope-io's test suite checks this.
+e.g. `USBInterface-8_33mhz-J2_2+J2_4-3v3-IEEE.bit`. Each field is explained in
+[Reading a bitfile name](bitfiles.md#reading-a-bitfile-name). No spaces, no
+extra periods; miniscope-io's test suite checks this.
 
 !!! note
     `wireless_daq.runs/impl_1/USBInterface.bit` is overwritten by every build.
@@ -77,13 +75,11 @@ output pins. The `hdl/build/` bitfiles use the default (`1`, both recovered
 clocks plus `pipe2_ready`); `hdl/build/ch1_debug/` holds the same rates built
 with the channel-1-era signal set. See [Pinout](../reference/pinout.md).
 
-## Changing the channel-2 buffer
+## Changing the ring size
 
-There is no channel-2 IP to generate any more. Both of its FIFOs are second
-instances of cores channel 1 already uses, and the buffer itself is a DDR3
-ring sized by `RING_ADDR_BITS` in `hdl/source/design/ddr3/ddr3_ui.v` — 26,
-meaning 256 MiB per channel. Changing it is a one-line edit with no IP
-regeneration.
+Each channel's buffer is a DDR3 ring sized by `RING_ADDR_BITS` in
+`hdl/source/design/ddr3/ddr3_ui.v` — 26, meaning 256 MiB per channel. Changing
+it is a one-line edit with no IP regeneration.
 
 Both rings must fit in the device together: the channel bit sits immediately
 above `RING_ADDR_BITS`, so the two of them occupy `2^(RING_ADDR_BITS+1)`

@@ -4,10 +4,10 @@ Two independent Manchester-encoded data streams received simultaneously on one
 Opal Kelly XEM7310-A75, for the wireless miniscope project. Each channel carries
 one miniscope; both arrive over a single USB cable.
 
-!!! success "Status — confirmed on hardware 2026-09-18"
-    Two miniscopes streamed simultaneously for 30 s at 8.33 Mbit/s each,
-    zero dropped buffers on either channel. See
-    [Measurements](reference/measurements.md).
+!!! success "Status"
+    **8.33 MHz works on hardware**: two miniscopes streaming at once, both
+    channels buffered in DDR3. The other rates still have to be rebuilt and
+    run on hardware — see [The bitfiles](build/bitfiles.md).
 
 ## What this is
 
@@ -27,10 +27,8 @@ same data rate**. That rate is set at build time — see
 [Building a bitfile](build/building.md).
 
 They also share the one DDR3 controller, arbitrated round-robin between them,
-each with a 256 MiB ring of its own. Channel 2 used to make do with a 256 KB
-block-RAM buffer, and that asymmetry was the cause of every lost buffer ever
-measured on it — see
-[What channel 2 does differently](design/two-channel.md#sharing-one-memory-controller).
+each with a 256 MiB ring of its own — see
+[Sharing one memory controller](design/overview.md#sharing-one-memory-controller).
 
 ## Where to start
 
@@ -51,8 +49,7 @@ hdl/build/ch1_debug/  Same builds with channel-1 debug signals on the spare pins
 docs/                 This site
 ```
 
-!!! warning "Source and bitfiles are kept in step"
-    Every committed bitfile has a `.txt` beside it recording the git commit,
-    shift depth, and timing slack it was built from. A bitfile whose source
-    cannot be reconstructed has caused a lost bench session on this project
-    before — see [Troubleshooting](reference/troubleshooting.md#provenance).
+!!! note "Every bitfile records its source"
+    Each committed bitfile has a `.txt` beside it recording the git commit,
+    shift depth and timing slack it was built from. Only the 8.33 MHz file is
+    built from the current source — see [The bitfiles](build/bitfiles.md).

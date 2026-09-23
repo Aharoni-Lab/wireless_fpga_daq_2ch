@@ -4,8 +4,7 @@ Behavioural simulation of the **full** path — decoder, FIFO chain, clock-domai
 crossing, and the real `ReadFromBlockPipeOut` call — against the Opal Kelly and
 DDR3 simulation models. No hardware required.
 
-This is how the channel-2 bug was reproduced and how the fix was verified, so
-it is worth being able to run.
+It is how the reset sequencer and the DDR3 path are verified.
 
 ## Setup
 
@@ -52,11 +51,10 @@ pipes and scores each.
 
 ## The memory controller is a model
 
-Both channels now cache into DDR3, and **MIG calibration does not converge in
-this simulation** — the Micron model reports tWLS violations on DQS and
+Both channels cache into DDR3, and **MIG calibration does not converge in this
+simulation** — the Micron model reports tWLS violations on DQS and
 `init_calib_complete` never asserts within any simulated time anyone has been
-willing to wait. Left alone, that would make everything behind the controller
-invisible here, which after channel 2 moved onto DDR3 meant *both* channels.
+willing to wait. Left alone, that would hide both channels.
 
 So the default run swaps the controller, not the design:
 `hdl/source/sim/ddr3/mig_ui_model.sv` replaces `xem7310_a75_mig` behind a
@@ -64,13 +62,10 @@ So the default run swaps the controller, not the design:
 all four DDR3 FIFOs, the reset sequencer and both Opal Kelly pipes are the ones
 that go into the bitfile.
 
-!!! success "Channel 1 is simulatable for the first time"
-    Before this, `CH2_ONLY=1` was the only usable mode and pipe `0xA0` had
-    never returned data in simulation. Both pipes now do.
-
 | variable | effect |
 |---|---|
-| *(default)* | both channels, MIG replaced by the behavioural model |
+| *(default)* | both channels, MIG replaced by the behavioural model. Channel 2 is pulsed during `fifo_reset`, so its recovered clock runs through the reset |
+| `CH2_RESET_PULSES=0` | channel 2 stays idle across the `fifo_reset` window, as on hardware — the case the [reset sequencer](../design/reset-sequencer.md) exists for |
 | `CH2_ONLY=1` | skips the calibration wait and the pipe `0xA0` read — roughly halves the runtime when only channel 2 matters |
 | `REAL_MIG=1` | the actual MIG and the Micron DDR3 model. **Does not work**; kept so the calibration problem can be reproduced |
 
@@ -79,9 +74,7 @@ that go into the bitfile.
     bank or row timing, no bandwidth limit, no read/write reordering. It says
     the logic driving `app_*` is correct. It says nothing about whether the
     controller is configured correctly or meets DDR3 timing — those stay
-    hardware questions, which is why the acceptance criteria in
-    [Measurements](../reference/measurements.md#two-channel-capture) are bench
-    measurements.
+    hardware questions.
 
     What it *is* deliberately awkward about: `app_rdy` and `app_wdf_rdy` are
     withheld pseudo-randomly, so a design that only works against an
@@ -112,7 +105,8 @@ TIMEOUT: no $finish after 8000000 ns.
   A pipe read is most likely still blocked waiting on ep_ready.
 ```
 
-That message is the signature of the [reset-ordering bug](../design/reset-sequencer.md).
+That message is the signature of a FIFO reset that never completed — the failure
+the [reset sequencer](../design/reset-sequencer.md) prevents.
 
 ## Waveforms
 
@@ -174,24 +168,14 @@ What it checks:
     with fixed priority — and the testbench caught each. A test that has never
     been seen to fail is not evidence.
 
-## Two traps that have already cost time
+## Traps
 
-!!! warning "Convention mismatch scores ~30%, not 0%"
-    The generator must encode according to `MANCHESTER_IEEE`. When it did not,
-    every recovered bit came back complemented — but the score was a *plausible*
-    30% rather than an obvious 100%, because the preamble `0x0f0f0f0f` inverts
-    to `0xf0f0f0f0`, which contains the same 16-bit search pattern shifted by
-    four bits. `shift_to_preamble` locked onto the inverted preamble and scored
-    partial garbage. `check_channel` now tests the inverted stream too and names
-    a convention mismatch explicitly.
-
-!!! warning "The DDR3 calibration wait was bound to a debug pin"
-    The testbench waited on `ddr3_init_complete`, which is just the net wired
-    to `dbg_sig2` — and `dbg_sig2` only carries `init_calib_complete` when
-    `DEBUG_MODE` is 0. The committed default is 1, where it carries `dec2_clk`.
-    So the wait was satisfied the moment channel 2's decoder ticked and never
-    actually waited for calibration. It is now a hierarchical reference to
-    `dut.init_calib_complete`, which cannot drift with the debug pin mapping.
+!!! warning "A convention mismatch scores ~30%, not 0%"
+    If the stimulus and `MANCHESTER_IEEE` disagree, every bit comes back
+    complemented, but the score is a *plausible* ~30% rather than an obvious
+    100%: the preamble `0x0f0f0f0f` inverts to `0xf0f0f0f0`, which contains the
+    same 16-bit search pattern shifted by four bits. `check_channel` scores the
+    inverted stream too and names a convention mismatch explicitly.
 
 !!! warning "A passing simulation is not a passing bitfile"
     A behavioural model has ideal clocks. Every rate up to 50 MHz decodes

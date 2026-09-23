@@ -25,8 +25,10 @@ If prompted to upgrade IP cores, click **Upgrade** / *Report IP Status* then
 *Upgrade Selected*. This is normal.
 
 !!! warning "Known snag: missing `mig.prj`"
-    The DDR3 controller config originally pointed at the first author's home
-    directory. If Vivado reports `mig.prj` not found:
+    The DDR3 controller IP points at a board-store copy of `mig.prj` in the
+    home directory of whoever generated it
+    (`.Xilinx/Vivado/2023.1.1/xhub/board_store/…`). If Vivado reports
+    `mig.prj` not found:
 
     1. In *Sources*, find `xem7310_a75_mig`, right-click ▸ *Re-customize IP*.
     2. Point it at
