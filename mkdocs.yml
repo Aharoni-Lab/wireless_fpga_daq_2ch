@@ -2,7 +2,8 @@ site_name: Wireless FPGA DAQ — two channel
 site_description: >-
   Two independent Manchester receivers on one Opal Kelly XEM7310, for the
   wireless miniscope project.
-repo_url: https://github.com/MarcelMB/wireless_fpga_daq_2ch
+site_url: https://aharoni-lab.com/wireless_fpga_daq_2ch/
+repo_url: https://github.com/Aharoni-Lab/wireless_fpga_daq_2ch
 edit_uri: edit/main/docs/
 
 theme:
